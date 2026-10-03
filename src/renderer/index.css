@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    'PingFang SC',
+    'Noto Sans CJK SC',
+    system-ui,
+    sans-serif;
+  @apply bg-slate-50 text-slate-900;
+}
+
+/* CodeMirror 编辑器外观 */
+.nf-editor .cm-editor {
+  height: 100%;
+  font-size: 15px;
+}
+.nf-editor .cm-editor.cm-focused {
+  outline: none;
+}
+.nf-editor .cm-scroller {
+  font-family: inherit;
+  line-height: 1.9;
+  padding: 12px 4px 40vh 8px;
+}
+.nf-editor .cm-content {
+  caret-color: #0f172a;
+}

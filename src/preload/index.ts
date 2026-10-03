@@ -1,0 +1,47 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import type { Api, LlmEvent } from '../shared/types'
+
+/**
+ * 预加载脚本：以 contextIsolation 方式暴露窄接口 window.novelflow。
+ * 渲染进程没有任何 Node 能力，所有 LLM/文件/密钥操作都经主进程。
+ */
+const api: Api = {
+  project: {
+    createDialog: () => ipcRenderer.invoke('project:createDialog'),
+    create: (dirPath, meta) => ipcRenderer.invoke('project:create', dirPath, meta),
+    openDialog: () => ipcRenderer.invoke('project:openDialog'),
+    open: (dirPath) => ipcRenderer.invoke('project:open', dirPath),
+    getCurrent: () => ipcRenderer.invoke('project:getCurrent')
+  },
+  files: {
+    list: (relDir) => ipcRenderer.invoke('files:list', relDir),
+    read: (relPath) => ipcRenderer.invoke('files:read', relPath),
+    write: (relPath, content) => ipcRenderer.invoke('files:write', relPath, content),
+    createChapter: (kind) => ipcRenderer.invoke('files:createChapter', kind)
+  },
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    savePreset: (input) => ipcRenderer.invoke('settings:savePreset', input),
+    deletePreset: (id) => ipcRenderer.invoke('settings:deletePreset', id),
+    setRoles: (roles) => ipcRenderer.invoke('settings:setRoles', roles),
+    setAppConfig: (config) => ipcRenderer.invoke('settings:setAppConfig', config)
+  },
+  llm: {
+    testConnection: (input) => ipcRenderer.invoke('llm:testConnection', input),
+    chat: (params) => ipcRenderer.invoke('llm:chat', params),
+    cancel: (callId) => ipcRenderer.invoke('llm:cancel', callId),
+    onEvent: (cb: (ev: LlmEvent) => void) => {
+      const handler = (_e: unknown, ev: LlmEvent) => cb(ev)
+      ipcRenderer.on('llm:event', handler)
+      return () => ipcRenderer.removeListener('llm:event', handler)
+    }
+  },
+  clipboard: {
+    writeText: (text) => ipcRenderer.invoke('clipboard:write', text)
+  },
+  app: {
+    version: () => ipcRenderer.invoke('app:version')
+  }
+}
+
+contextBridge.exposeInMainWorld('novelflow', api)
