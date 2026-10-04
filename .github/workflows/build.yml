@@ -8,6 +8,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 打 tag 时需要用 GITHUB_TOKEN 创建 Release 并上传安装包
+permissions:
+  contents: write
+
 jobs:
   # Windows：测试 → 构建 → 打包 NSIS 安装包；打 tag 时发布 Release 附安装包
   windows:
