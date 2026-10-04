@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist-electron/
+release/
+seed-novel/
 *.log
 logs/
 .DS_Store

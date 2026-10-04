@@ -55,7 +55,13 @@ export interface PresetInput {
 /** 模型角色映射：角色 → 预设 id */
 export type RoleMapping = Partial<Record<ModelRole, string>>
 
-/** 应用设置（并发限制、节流、自动保存间隔） */
+/** 主题（M5 外观设置） */
+export type Theme = 'light' | 'dark'
+
+/** 复制格式（M5） */
+export type CopyFormat = 'plain' | 'markdown' | 'web'
+
+/** 应用设置（并发限制、节流、自动保存间隔、外观） */
 export interface AppConfig {
   /** 同时进行的 LLM 请求上限，默认 2，可配置 */
   concurrencyLimit: number
@@ -63,12 +69,44 @@ export interface AppConfig {
   streamThrottleMs: number
   /** 编辑器自动保存间隔（毫秒），默认 3500（3–5 秒） */
   autoSaveMs: number
+  /** 深/浅色 */
+  theme: Theme
+  /** 编辑器字号（px） */
+  fontSize: number
+  /** 编辑器行距（倍数） */
+  lineHeight: number
+  /** 复制格式：纯文本 / Markdown / 网文格式 */
+  copyFormat: CopyFormat
+  /** 网文格式：段首空两格 */
+  webCopyIndent: boolean
+  /** 网文格式：段间空行 */
+  webCopyBlankLine: boolean
 }
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
   concurrencyLimit: 2,
   streamThrottleMs: 80,
-  autoSaveMs: 3500
+  autoSaveMs: 3500,
+  theme: 'light',
+  fontSize: 15,
+  lineHeight: 1.9,
+  copyFormat: 'plain',
+  webCopyIndent: true,
+  webCopyBlankLine: true
+}
+
+/** 导出（M5） */
+export type ExportFormat = 'txt' | 'md' | 'docx'
+export type ExportScope = 'chapter' | 'volume' | 'book'
+
+export interface ExportOptions {
+  scope: ExportScope
+  format: ExportFormat
+  /** scope=chapter 时的章节相对路径 */
+  chapterRel?: string
+  /** scope=volume 时的章节号范围（含） */
+  fromChapter?: number
+  toChapter?: number
 }
 
 /** 设置页拿到的完整设置（预设不含明文密钥） */
@@ -379,6 +417,10 @@ export interface Api {
   clipboard: {
     writeText(text: string): Promise<void>
   }
+  export: {
+    /** 弹出保存框并导出单章/整卷/全书为 txt/md/docx；返回导出路径（取消为 null） */
+    run(options: ExportOptions): Promise<string | null>
+  }
   skills: {
     /** 内置 + 用户自建 Skill 列表 */
     list(): Promise<SkillMeta[]>
@@ -442,6 +484,8 @@ export interface Api {
   }
   app: {
     version(): Promise<string>
+    /** 一键导出诊断日志（版本/环境/日志尾部，密钥已脱敏）；返回路径（取消为 null） */
+    exportDiagnostics(): Promise<string | null>
   }
 }
 

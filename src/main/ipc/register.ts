@@ -13,9 +13,11 @@ import { requireChapterPlan, ChapterGateError } from '../services/context/gates'
 import { WorkflowRegistry } from '../services/workflow/registry'
 import { RunStore, runStoreFor } from '../services/workflow/store'
 import { WorkflowEngine, type NodeExecutor, type EngineDeps } from '../services/workflow/engine'
+import { exportFileName, renderDocxExport, renderTextExport, type ExportChapter } from '../services/export/export'
 import type { PresetCreds, ChatMessage } from '../services/llm/adapters'
 import type {
   ChatStartParams,
+  ExportOptions,
   FrameworkApplyResult,
   LlmEvent,
   PresetInput,
@@ -35,6 +37,7 @@ export interface IpcContext {
   llm: LlmService
   skills: SkillRegistry
   workflows: WorkflowRegistry
+  version: string
   getWindow: () => import('electron').BrowserWindow | null
 }
 
@@ -42,6 +45,8 @@ export interface IpcHost {
   pickDirectory(): Promise<string | null>
   pickMarkdownFile(): Promise<string | null>
   saveMarkdownFile(defaultName: string, content: string): Promise<string | null>
+  /** 导出/诊断日志的保存框（支持文本与二进制） */
+  saveExportFile(defaultName: string, data: string | Uint8Array): Promise<string | null>
   onProjectOpened(info: ProjectInfo): void
 }
 
@@ -467,7 +472,70 @@ export function registerIpc(ctx: IpcContext, host: IpcHost): void {
   )
   ipcMain.handle('runs:abort', (_e, id: string) => wrap(() => engineFor().then((e) => e.abort(id))))
 
-  // ---------- 剪贴板 / 应用 ----------
+  // ---------- 剪贴板 / 导出 / 应用（M5） ----------
   ipcMain.handle('clipboard:write', (_e, text: string) => wrap(() => clipboard.writeText(text)))
-  ipcMain.handle('app:version', () => Promise.resolve('0.1.0'))
+
+  const chapterNumber = (name: string): number => {
+    const m = /^第(\d+)章\.md$/.exec(name)
+    return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER
+  }
+
+  ipcMain.handle('export:run', (_e, options: ExportOptions) =>
+    wrap(async () => {
+      const store = requireProject()
+      const all = (await store.listDir('chapters'))
+        .filter((e) => e.type === 'file' && /^第\d+章\.md$/.test(e.name))
+        .sort((a, b) => chapterNumber(a.name) - chapterNumber(b.name))
+      let selected = all
+      if (options.scope === 'chapter') {
+        selected = all.filter((e) => e.path === options.chapterRel || e.name === options.chapterRel)
+      } else if (options.scope === 'volume') {
+        const from = options.fromChapter ?? 1
+        const to = options.toChapter ?? Number.MAX_SAFE_INTEGER
+        selected = all.filter((e) => chapterNumber(e.name) >= from && chapterNumber(e.name) <= to)
+      }
+      if (selected.length === 0) throw new Error('没有可导出的章节（请确认章节范围或先打开一个章节）')
+      const chapters: ExportChapter[] = []
+      for (const e of selected) {
+        chapters.push({ name: e.name.replace(/\.md$/, ''), content: await store.readRel(e.path) })
+      }
+      const info = await openProject(store.root)
+      const title =
+        options.scope === 'chapter'
+          ? chapters[0].name
+          : options.scope === 'volume'
+            ? `${info.name} 第${options.fromChapter ?? 1}-${options.toChapter ?? ''}章`
+            : info.name
+      const fileName = exportFileName(title, options.format)
+      ctx.logger.info(`导出${options.scope}（${options.format}）：${fileName}，共 ${chapters.length} 章`)
+      if (options.format === 'docx') {
+        const buf = await renderDocxExport(title, chapters)
+        return host.saveExportFile(fileName, buf)
+      }
+      return host.saveExportFile(fileName, renderTextExport(title, chapters, options.format))
+    })
+  )
+
+  ipcMain.handle('app:version', () => Promise.resolve(ctx.version))
+
+  ipcMain.handle('app:exportDiagnostics', () =>
+    wrap(async () => {
+      const config = await ctx.settings.getConfig()
+      const skillCount = (await ctx.skills.list()).length
+      const lines = [
+        'NovelFlow 诊断日志（密钥已脱敏）',
+        `生成时间：${new Date().toISOString()}`,
+        `应用版本：${ctx.version}`,
+        `Electron：${process.versions.electron ?? '-'}  Node：${process.versions.node}  Chrome：${process.versions.chrome ?? '-'}`,
+        `平台：${process.platform} ${process.arch}`,
+        `项目：${current ? current.root : '（未打开）'}`,
+        `Skill 数：${skillCount}`,
+        `配置：${ctx.logger.redact(JSON.stringify(config))}`,
+        '',
+        '--- 日志尾部 200 行 ---',
+        ...(await ctx.logger.tail(200))
+      ]
+      return host.saveExportFile(`novelflow-diagnostics-${Date.now()}.txt`, lines.join('\n') + '\n')
+    })
+  )
 }

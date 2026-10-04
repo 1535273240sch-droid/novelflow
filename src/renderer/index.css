@@ -18,19 +18,80 @@ body {
   @apply bg-slate-50 text-slate-900;
 }
 
-/* CodeMirror 编辑器外观 */
+/* CodeMirror 编辑器外观（字号/行距由外观设置通过 CSS 变量注入） */
 .nf-editor .cm-editor {
   height: 100%;
-  font-size: 15px;
+  font-size: var(--nf-font-size, 15px);
 }
 .nf-editor .cm-editor.cm-focused {
   outline: none;
 }
 .nf-editor .cm-scroller {
   font-family: inherit;
-  line-height: 1.9;
+  line-height: var(--nf-line-height, 1.9);
   padding: 12px 4px 40vh 8px;
 }
 .nf-editor .cm-content {
   caret-color: #0f172a;
+}
+
+/* ---- 深色主题：Tailwind v4 的颜色工具类都走 var(--color-*)，这里按需覆盖常用面 ---- */
+html[data-theme='dark'] body {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+html[data-theme='dark'] .bg-white {
+  background-color: #111827 !important;
+}
+html[data-theme='dark'] .bg-slate-50,
+html[data-theme='dark'] .bg-slate-50\/60 {
+  background-color: #0f172a !important;
+}
+html[data-theme='dark'] .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+html[data-theme='dark'] .bg-slate-200 {
+  background-color: #334155 !important;
+}
+html[data-theme='dark'] .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+html[data-theme='dark'] .text-slate-900,
+html[data-theme='dark'] .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+html[data-theme='dark'] .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+html[data-theme='dark'] .text-slate-600 {
+  color: #94a3b8 !important;
+}
+html[data-theme='dark'] .text-slate-500,
+html[data-theme='dark'] .text-slate-400 {
+  color: #94a3b8 !important;
+}
+html[data-theme='dark'] .border-slate-100,
+html[data-theme='dark'] .border-slate-200,
+html[data-theme='dark'] .border-slate-300 {
+  border-color: #334155 !important;
+}
+html[data-theme='dark'] .hover\:bg-slate-50:hover,
+html[data-theme='dark'] .hover\:bg-slate-100:hover,
+html[data-theme='dark'] .hover\:bg-white:hover {
+  background-color: #1e293b !important;
+}
+html[data-theme='dark'] .hover\:bg-slate-200:hover {
+  background-color: #334155 !important;
+}
+html[data-theme='dark'] .hover\:bg-slate-700:hover {
+  background-color: #cbd5e1 !important;
+}
+html[data-theme='dark'] .nf-editor .cm-editor {
+  background-color: #0b1220 !important;
+}
+html[data-theme='dark'] .nf-editor .cm-content {
+  caret-color: #e2e8f0;
+}
+html[data-theme='dark'] .nf-editor .cm-scroller {
+  color: #e2e8f0;
 }

@@ -2,7 +2,7 @@
 
 桌面端小说写作软件：接入任意大模型（OpenAI 兼容 / Anthropic 原生协议），把写作 Skill 串成工作流（M2 起）。本项目即文件夹，设定、大纲、正文、状态各自成文件，可读可备份。
 
-当前进度：**M1 骨架与模型接入、M2 Skill 系统、M3 框架与上下文组装、M4 工作流已完成**。
+当前进度：**M1–M5 已完成**（骨架与模型接入 / Skill 系统 / 框架与上下文组装 / 工作流 / 打磨与打包）。
 
 ## 如何运行
 
@@ -85,6 +85,25 @@ node scripts/mock-openai-server.mjs [--port 8801] [--key secret123] \
 - **崩溃恢复**：节点状态逐步落库，进程在节点执行中被强杀后，重启 resume 会重跑中断节点、保留已完成节点，文件写入走原子写不损坏（有集成用例）
 - **检查类不污染文本流**：错别字/一致性检查的输出只用于展示，文本流原样传递给下一节点
 
+## 已完成功能（M5：打磨与打包）
+
+- **导出**：单章 / 整卷（章节号范围）/ 全书 → `.txt` / `.md` / `.docx`（docx 用 `docx` 库，MIT）
+- **复制格式**：纯文本 / Markdown / 网文格式（段首空两格、段间空行可配置）+「已复制 N 字」
+- **种子项目**：`npm run seed` 生成 ~100 万字（默认 200 章 × 5000 字）确定性种子项目，可重复
+- **启动基准**：`npm run benchmark` 实测冷启动到首屏（SMOKE_OK），阈值 3000ms，实测值写入 [docs/实测基准.md](docs/实测基准.md)
+- **外观设置**：深/浅色主题、编辑器字号与行距
+- **诊断**：全局错误边界 + 主进程 `uncaughtException` 记日志保持存活；设置页「一键导出诊断日志」（已脱敏）
+- **打包**：`npm run dist` 出 Windows NSIS 安装包（`release/`）；`npm run dist:mac` 的 macOS 打包配置存在，但**未在 macOS 真机验证**（本机为 Windows，如实标注）
+
+### 常用命令
+
+```bash
+npm test              # 单元测试（全 mock）
+npm run seed          # 生成 ~100 万字种子项目（默认 ./seed-novel）
+npm run benchmark     # 冷启动基准，结果写入 docs/实测基准.md
+npm run dist          # Windows 安装包 → release/
+```
+
 ## 目录结构（本仓库）
 
 ```
@@ -121,6 +140,7 @@ novelflow/
 | zustand | ^5.0.3 | 渲染进程状态管理 | MIT |
 | @codemirror/state / view / commands | ^6 | 编辑器内核（增量文档、命令、历史） | MIT |
 | @codemirror/lang-markdown | ^6.3.2 | Markdown 语法支持 | MIT |
+| docx | ^9.0.0 | 导出 .docx（M5） | MIT |
 
 开发依赖：
 
@@ -133,6 +153,7 @@ novelflow/
 | tailwindcss / @tailwindcss/vite | ^4.1.4 | 原子化样式 | MIT |
 | esbuild | ^0.25.0 | 主进程/preload 打包 | MIT |
 | vitest | ^3.0.8 | 单元测试 | MIT |
+| electron-builder | ^25.0.0 | 打包安装包（M5） | MIT |
 | @types/react / react-dom / node | — | 类型声明 | MIT / MIT / MIT |
 
 无付费或需联网安装的闭源依赖。`electron` 二进制本身为 MIT License。

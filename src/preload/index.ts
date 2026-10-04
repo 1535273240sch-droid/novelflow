@@ -41,6 +41,9 @@ const api: Api = {
   clipboard: {
     writeText: (text) => ipcRenderer.invoke('clipboard:write', text)
   },
+  export: {
+    run: (options) => ipcRenderer.invoke('export:run', options)
+  },
   skills: {
     list: () => ipcRenderer.invoke('skills:list'),
     get: (id) => ipcRenderer.invoke('skills:get', id),
@@ -91,7 +94,8 @@ const api: Api = {
     abort: (id) => ipcRenderer.invoke('runs:abort', id)
   },
   app: {
-    version: () => ipcRenderer.invoke('app:version')
+    version: () => ipcRenderer.invoke('app:version'),
+    exportDiagnostics: () => ipcRenderer.invoke('app:exportDiagnostics')
   }
 }
 

@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useSettingsStore } from '../../stores/settings'
+import { useProjectStore } from '../../stores/project'
 import { useUiStore } from '../../stores/ui'
 import {
   MODEL_ROLE_LABELS,
   MODEL_ROLES,
   type AppConfig,
+  type CopyFormat,
+  type ExportFormat,
+  type ExportScope,
   type PresetInput,
   type PresetView,
   type Protocol,
@@ -41,6 +45,12 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
   const [results, setResults] = useState<Record<string, TestConnectionResult>>({})
   const [rolesDraft, setRolesDraft] = useState<RoleMapping>({})
   const [configDraft, setConfigDraft] = useState<AppConfig | null>(null)
+  const [exportScope, setExportScope] = useState<ExportScope>('book')
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('txt')
+  const [exportFrom, setExportFrom] = useState('1')
+  const [exportTo, setExportTo] = useState('999')
+  const project = useProjectStore((s) => s.project)
+  const currentPath = useProjectStore((s) => s.currentPath)
 
   useEffect(() => {
     if (settings) {
@@ -298,6 +308,120 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
             className="mt-3 rounded bg-slate-800 px-4 py-1.5 text-sm text-white hover:bg-slate-700"
           >
             保存性能配置
+          </button>
+        </section>
+
+        {/* 外观 */}
+        <section className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 font-semibold">外观</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            {field('主题', (
+              <select className={inputCls} value={configDraft.theme} onChange={(e) => setConfigDraft({ ...configDraft, theme: e.target.value as AppConfig['theme'] })}>
+                <option value="light">浅色</option>
+                <option value="dark">深色</option>
+              </select>
+            ))}
+            {field('编辑器字号（px）', (
+              <input type="number" min={12} max={28} className={inputCls} value={configDraft.fontSize} onChange={(e) => setConfigDraft({ ...configDraft, fontSize: Number(e.target.value) || 15 })} />
+            ))}
+            {field('行距（倍数）', (
+              <input type="number" step={0.1} min={1.2} max={3} className={inputCls} value={configDraft.lineHeight} onChange={(e) => setConfigDraft({ ...configDraft, lineHeight: Number(e.target.value) || 1.9 })} />
+            ))}
+            {field('复制格式', (
+              <select className={inputCls} value={configDraft.copyFormat} onChange={(e) => setConfigDraft({ ...configDraft, copyFormat: e.target.value as CopyFormat })}>
+                <option value="plain">纯文本</option>
+                <option value="markdown">Markdown</option>
+                <option value="web">网文格式</option>
+              </select>
+            ))}
+          </div>
+          {configDraft.copyFormat === 'web' && (
+            <div className="mt-3 flex gap-4 text-sm text-slate-600">
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={configDraft.webCopyIndent} onChange={(e) => setConfigDraft({ ...configDraft, webCopyIndent: e.target.checked })} />
+                段首空两格
+              </label>
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={configDraft.webCopyBlankLine} onChange={(e) => setConfigDraft({ ...configDraft, webCopyBlankLine: e.target.checked })} />
+                段间空行
+              </label>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              void setAppConfig(configDraft)
+              showToast('外观设置已保存')
+            }}
+            className="mt-3 rounded bg-slate-800 px-4 py-1.5 text-sm text-white hover:bg-slate-700"
+          >
+            保存外观设置
+          </button>
+        </section>
+
+        {/* 导出 */}
+        <section className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 font-semibold">导出</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {field('范围', (
+              <select className={inputCls} value={exportScope} onChange={(e) => setExportScope(e.target.value as ExportScope)}>
+                <option value="chapter">当前章（{currentPath?.split('/').pop() ?? '未打开'}）</option>
+                <option value="volume">整卷（章节号范围）</option>
+                <option value="book">全书</option>
+              </select>
+            ))}
+            {field('格式', (
+              <select className={inputCls} value={exportFormat} onChange={(e) => setExportFormat(e.target.value as ExportFormat)}>
+                <option value="txt">.txt</option>
+                <option value="md">.md</option>
+                <option value="docx">.docx（docx，MIT）</option>
+              </select>
+            ))}
+            {exportScope === 'volume' && (
+              <div className="flex items-end gap-2">
+                {field('起', <input className={inputCls} value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} />)}
+                {field('止', <input className={inputCls} value={exportTo} onChange={(e) => setExportTo(e.target.value)} />)}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={async () => {
+              if (!project) {
+                showToast('请先打开项目')
+                return
+              }
+              try {
+                const path = await window.novelflow.export.run({
+                  scope: exportScope,
+                  format: exportFormat,
+                  ...(currentPath ? { chapterRel: currentPath } : {}),
+                  fromChapter: parseInt(exportFrom, 10) || 1,
+                  toChapter: parseInt(exportTo, 10) || 9999
+                })
+                if (path) showToast(`已导出到 ${path}`)
+              } catch (e) {
+                showToast(`导出失败：${e instanceof Error ? e.message : String(e)}`)
+              }
+            }}
+            className="mt-3 rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-500"
+          >
+            导出
+          </button>
+        </section>
+
+        {/* 诊断 */}
+        <section className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 font-semibold">诊断</h2>
+          <p className="mb-3 text-xs text-slate-500">
+            一键导出诊断日志（版本 / 运行环境 / 配置 / 主进程日志尾部），导出内容已脱敏，不含 API Key。
+          </p>
+          <button
+            onClick={async () => {
+              const path = await window.novelflow.app.exportDiagnostics()
+              if (path) showToast(`诊断日志已导出到 ${path}`)
+            }}
+            className="rounded border border-slate-300 px-4 py-1.5 text-sm hover:bg-slate-100"
+          >
+            一键导出诊断日志
           </button>
         </section>
       </div>

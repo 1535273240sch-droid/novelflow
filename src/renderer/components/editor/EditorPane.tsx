@@ -3,6 +3,7 @@ import { CodeMirrorEditor } from './CodeMirrorEditor'
 import { useProjectStore } from '../../stores/project'
 import { useSettingsStore } from '../../stores/settings'
 import { useUiStore } from '../../stores/ui'
+import { formatForCopy } from '../../../main/services/export/copy-format'
 
 /** 统计「字数」：去除空白字符后的长度（中文按字计）。 */
 export function countChars(text: string): number {
@@ -24,7 +25,8 @@ export function EditorPane() {
   const setSelection = useProjectStore((s) => s.setSelection)
   const saveNow = useProjectStore((s) => s.saveNow)
   const showToast = useUiStore((s) => s.showToast)
-  const autoSaveMs = useSettingsStore((s) => s.settings?.config.autoSaveMs ?? 3500)
+  const config = useSettingsStore((s) => s.settings?.config)
+  const autoSaveMs = config?.autoSaveMs ?? 3500
 
   // 自动保存：默认 3.5 秒（可在设置中调整 3–5 秒区间）
   useEffect(() => {
@@ -39,8 +41,12 @@ export function EditorPane() {
       showToast('当前内容为空，未复制')
       return
     }
-    await window.novelflow.clipboard.writeText(content)
-    showToast(`已复制 ${countChars(content)} 字`)
+    const formatted = formatForCopy(content, config?.copyFormat ?? 'plain', {
+      indent: config?.webCopyIndent ?? true,
+      blankLine: config?.webCopyBlankLine ?? true
+    })
+    await window.novelflow.clipboard.writeText(formatted)
+    showToast(`已复制 ${countChars(formatted)} 字`)
   }
 
   const onManualSave = async () => {

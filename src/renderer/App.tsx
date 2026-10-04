@@ -52,8 +52,17 @@ export default function App() {
   const createDialog = useProjectStore((s) => s.createDialog)
   const openDialog = useProjectStore((s) => s.openDialog)
   const loadSettings = useSettingsStore((s) => s.load)
+  const config = useSettingsStore((s) => s.settings?.config)
   const [page, setPage] = useState<Page>('editor')
   const [sidebar, setSidebar] = useState<'demo' | 'skill'>('skill')
+
+  // 外观设置：主题 + 编辑器字号/行距（通过 CSS 变量注入，不触碰组件样式）
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.theme = config?.theme ?? 'light'
+    root.style.setProperty('--nf-font-size', `${config?.fontSize ?? 15}px`)
+    root.style.setProperty('--nf-line-height', String(config?.lineHeight ?? 1.9))
+  }, [config?.theme, config?.fontSize, config?.lineHeight])
 
   useEffect(() => {
     void init()

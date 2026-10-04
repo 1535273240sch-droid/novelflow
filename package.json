@@ -1,7 +1,7 @@
 {
   "name": "novelflow",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "NovelFlow 小说写作工作台（Electron + Vite + React 18 + TypeScript）",
   "main": "dist-electron/main/index.js",
   "author": "NovelFlow",
@@ -13,13 +13,56 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "electron .",
-    "mock": "node scripts/mock-openai-server.mjs"
+    "mock": "node scripts/mock-openai-server.mjs",
+    "seed": "node scripts/generate-seed-project.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "dist": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.novelflow.app",
+    "productName": "NovelFlow",
+    "copyright": "Copyright © 2026 NovelFlow",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "skills",
+        "to": "skills"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}.${ext}"
+    }
   },
   "dependencies": {
     "@codemirror/commands": "^6.8.0",
     "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.0",
+    "docx": "^9.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.3"
@@ -31,6 +74,7 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^36.0.0",
+    "electron-builder": "^25.0.0",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.4",
     "typescript": "^5.7.3",

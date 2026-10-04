@@ -1,0 +1,83 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Windows：测试 → 构建 → 打包 NSIS 安装包；打 tag 时发布 Release 附安装包
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build (typecheck + vite + esbuild)
+        run: npm run build
+
+      - name: Package (electron-builder NSIS)
+        run: npx electron-builder --win
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: novelflow-windows-installer
+          path: |
+            release/*.exe
+            release/*.blockmap
+          if-no-files-found: error
+
+      - name: Publish GitHub Release (tag only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            release/*.exe \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes
+
+  # macOS：验证打包配置可跑通并产出 dmg。
+  # 说明：CI 上能构建 ≠ 在 macOS 真机运行验证通过；本项目未做 macOS 真机验证（本机为 Windows）。
+  # 该任务设置为非阻塞（continue-on-error），避免未验证的平台拖红整体 CI。
+  macos:
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package (electron-builder DMG)
+        run: npx electron-builder --mac
+
+      - name: Upload dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: novelflow-macos-dmg
+          path: release/*.dmg
+          if-no-files-found: warn

@@ -37,7 +37,8 @@ export function CodeMirrorEditor({ value, onChange, onSelectionChange }: Props) 
           placeholder('从左侧打开或新建一章，开始写作…'),
           markdown(),
           EditorView.theme({
-            '&': { backgroundColor: '#ffffff' }
+            // 背景交给 CSS（深色主题下由 index.css 覆盖）
+            '&': { backgroundColor: 'transparent' }
           }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {

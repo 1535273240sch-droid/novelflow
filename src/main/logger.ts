@@ -32,6 +32,17 @@ export class Logger {
     this.write('ERROR', msg)
   }
 
+  /** 读取日志文件尾部若干行（诊断日志导出用）；无文件时返回空数组。 */
+  async tail(lines = 200): Promise<string[]> {
+    if (!this.filePath) return []
+    try {
+      const raw = await fs.readFile(this.filePath, 'utf8')
+      return raw.split(/\r?\n/).filter((l) => l.length > 0).slice(-lines)
+    } catch {
+      return []
+    }
+  }
+
   private write(level: string, msg: string): void {
     const line = `[${new Date().toISOString()}] [${level}] ${this.redact(msg)}`
     // eslint-disable-next-line no-console

@@ -82,7 +82,7 @@ async function initContext(): Promise<IpcContext> {
   await skills.ensureSeeded()
   logger.info(`Skill 库就绪：${(await skills.list()).length} 个`)
   const workflows = new WorkflowRegistry(userData)
-  return { logger, settings, llm, skills, workflows, getWindow: () => mainWindow }
+  return { logger, settings, llm, skills, workflows, version: app.getVersion(), getWindow: () => mainWindow }
 }
 
 async function run(): Promise<void> {
@@ -120,6 +120,20 @@ async function run(): Promise<void> {
       const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
       if (res.canceled || !res.filePath) return null
       await fs.writeFile(res.filePath, content, 'utf8')
+      return res.filePath
+    },
+    async saveExportFile(defaultName: string, data: string | Uint8Array): Promise<string | null> {
+      const ext = (defaultName.split('.').pop() ?? 'txt').toLowerCase()
+      const win = mainWindow
+      const options = {
+        title: '导出',
+        defaultPath: defaultName,
+        filters: [{ name: ext.toUpperCase(), extensions: [ext] }]
+      }
+      const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
+      if (res.canceled || !res.filePath) return null
+      if (typeof data === 'string') await fs.writeFile(res.filePath, data, 'utf8')
+      else await fs.writeFile(res.filePath, data)
       return res.filePath
     },
     onProjectOpened(info: ProjectInfo) {
