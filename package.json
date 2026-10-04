@@ -1,7 +1,7 @@
 {
   "name": "novelflow",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "NovelFlow 小说写作工作台（Electron + Vite + React 18 + TypeScript）",
   "main": "dist-electron/main/index.js",
   "author": "NovelFlow",

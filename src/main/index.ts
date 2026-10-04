@@ -35,7 +35,7 @@ function createWindow(): BrowserWindow {
     minWidth: 960,
     minHeight: 640,
     title: 'NovelFlow 小说写作工作台',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f5ecd4',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,

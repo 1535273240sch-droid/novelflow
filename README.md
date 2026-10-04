@@ -1,10 +1,10 @@
 # NovelFlow 小说写作工作台
 
-桌面端小说写作软件：接入任意大模型（OpenAI 兼容 / Anthropic 原生协议），把写作 Skill 串成工作流（M2 起）。本项目即文件夹，设定、大纲、正文、状态各自成文件，可读可备份。
+桌面端小说写作软件：**羊皮卷 / 古墨文艺界面**（暖米色做旧纸底、松烟墨字、朱砂印章点缀、古籍疏朗行距；设置 → 外观可切「玄墨夜读」深色模式）。接入任意大模型（OpenAI 兼容 / Anthropic 原生协议），把写作 Skill 串成工作流（M2 起）。本项目即文件夹，设定、大纲、正文、状态各自成文件，可读可备份。
 
-当前进度：**M1–M5 已完成并发布 v1.0.0**；m6 终审为「部分达成」（功能与自动化验证通过，独立验证与人工真机冒烟未做，见 [docs/终审报告.md](docs/终审报告.md)）。
+当前进度：**M1–M5 已完成并发布 v1.0.0；v1.1.0 重制羊皮卷 / 古墨主题界面**；m6 终审为「部分达成」（功能与自动化验证通过，独立验证与人工真机冒烟未做，见 [docs/终审报告.md](docs/终审报告.md)）。
 
-> 安装包：[Releases · v1.0.0](https://github.com/1535273240sch-droid/novelflow/releases/tag/v1.0.0)（Windows `NovelFlow-Setup-1.0.0.exe`，由 GitHub Actions 构建）。
+> 安装包：[Releases](https://github.com/1535273240sch-droid/novelflow/releases)（Windows `.exe`，由 GitHub Actions 在仓库内构建打包并随 tag 自动发布）。
 
 ## 如何运行
 

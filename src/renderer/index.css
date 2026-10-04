@@ -1,5 +1,77 @@
 @import 'tailwindcss';
 
+/*
+ * NovelFlow · 羊皮卷 / 古墨 主题（文艺向）
+ *
+ * 设计取向：以「纸、墨、朱砂、赭金」四色取代冷灰蓝。
+ * - 纸 (parchment)：暖米黄底，带极淡的纤维噪点与四角渐暗的做旧阴影。
+ * - 墨 (ink)：正文不用纯黑，取松烟墨的褐黑 #2b2118，边缘温润。
+ * - 朱砂 (cinnabar)：印章、强调、危险态用印泥红 #9e2b25。
+ * - 赭金 (ochre)：分隔线、徽记、高亮用旧铜金。
+ * 通过覆盖 @theme 的调色板，让组件里既有的 slate/blue/red/amber/green/white
+ * 工具类全局重映射到这套墨纸配色，无需逐文件改写。
+ * 深色主题（设置 → 外观 → 深色）重映射为「玄墨夜读」：暖褐黑纸 + 淡墨字。
+ */
+@theme {
+  /* 字体：正文即衬线/宋体系，标题与徽记用楷体系 */
+  --font-sans:
+    'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, 'Songti SC', STSong, SimSun,
+    'Noto Serif CJK SC', 'Source Han Serif SC', 'STZhongsong', serif;
+  --font-brush: 'STKaiti', 'KaiTi', '楷体', 'BiauKai', 'FZKai-Z03S', 'Songti SC', SimSun, serif;
+
+  /* 基底 */
+  --color-white: #f7f0dd;
+  --color-black: #201810;
+
+  /* 墨纸阶 (原 slate) */
+  --color-slate-50: #faf5e8;
+  --color-slate-100: #f2e9d2;
+  --color-slate-200: #e7d9ba;
+  --color-slate-300: #d4bf95;
+  --color-slate-400: #b1986d;
+  --color-slate-500: #8a7350;
+  --color-slate-600: #6d5940;
+  --color-slate-700: #52432f;
+  --color-slate-800: #3b3020;
+  --color-slate-900: #241c12;
+
+  /* 墨青阶 (原 blue) —— 取徽墨掺青 */
+  --color-blue-50: #e6ece9;
+  --color-blue-100: #c7d5d2;
+  --color-blue-200: #9fb4b1;
+  --color-blue-400: #4f7076;
+  --color-blue-500: #3b5b62;
+  --color-blue-600: #2c484f;
+  --color-blue-700: #21363b;
+
+  /* 朱砂阶 (原 red) —— 印泥红 */
+  --color-red-50: #f6e7e1;
+  --color-red-100: #ebc9bf;
+  --color-red-200: #d9a495;
+  --color-red-400: #bd5445;
+  --color-red-500: #a63f33;
+  --color-red-600: #903029;
+  --color-red-700: #6f2620;
+
+  /* 赭金阶 (原 amber) —— 旧铜金 */
+  --color-amber-50: #f7edd2;
+  --color-amber-100: #ecd9a8;
+  --color-amber-200: #dcc178;
+  --color-amber-400: #b5892a;
+  --color-amber-500: #97701f;
+  --color-amber-700: #6f5416;
+  --color-amber-800: #55400f;
+
+  /* 苔绿阶 (原 green) —— 青苔/竹 */
+  --color-green-50: #eaefda;
+  --color-green-100: #d6e1b8;
+  --color-green-200: #bccc88;
+  --color-green-400: #6f8641;
+  --color-green-500: #5c7335;
+  --color-green-700: #405422;
+  --color-green-800: #33421a;
+}
+
 html,
 body,
 #root {
@@ -8,90 +80,195 @@ body,
 }
 
 body {
-  font-family:
-    'Microsoft YaHei UI',
-    'Microsoft YaHei',
-    'PingFang SC',
-    'Noto Sans CJK SC',
-    system-ui,
-    sans-serif;
-  @apply bg-slate-50 text-slate-900;
+  font-family: var(--font-sans);
+  color: #2b2118;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 做旧羊皮纸：暖底 + 顶部微光 + 四角渐暗 + 极淡纤维噪点 */
+  background-color: #f5ecd4;
+  background-image:
+    radial-gradient(ellipse at center top, rgba(255, 250, 235, 0.5), transparent 60%),
+    radial-gradient(ellipse at center bottom, rgba(150, 120, 70, 0.08), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
-/* CodeMirror 编辑器外观（字号/行距由外观设置通过 CSS 变量注入） */
+::selection {
+  background: rgba(158, 43, 37, 0.22);
+  color: #2b2118;
+}
+
+/* 墨色细滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c3a876 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c3a876;
+  border: 2px solid rgba(245, 236, 212, 0.6);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #a88a52;
+}
+
+/* 标题用楷体系，带一点书写气 */
+h1,
+h2,
+h3 {
+  font-family: var(--font-brush);
+  letter-spacing: 0.03em;
+  color: #241c12;
+}
+
+/* ============ 装饰性部件 ============ */
+
+/* 朱砂印章：方印，反白楷字，微旋转，做旧边 */
+.nf-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-brush);
+  font-weight: 700;
+  color: #f7f0dd;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.12), transparent 60%),
+    #9e2b25;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(247, 240, 221, 0.55),
+    0 1px 2px rgba(60, 30, 20, 0.35);
+  transform: rotate(-3deg);
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  user-select: none;
+}
+
+/* 毛笔横扫的分隔线：中间浓、两端淡出 */
+.nf-brush-rule {
+  height: 2px;
+  border: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(74, 61, 43, 0.12) 12%,
+    rgba(43, 33, 24, 0.72) 50%,
+    rgba(74, 61, 43, 0.12) 88%,
+    transparent 100%
+  );
+  border-radius: 2px;
+}
+
+/* 主按钮的墨印质感微投影 */
+.nf-btn-ink {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset, 0 2px 6px -3px rgba(40, 25, 10, 0.6);
+}
+
+/* ============ 编辑器外观（羊皮卷正文） ============ */
 .nf-editor .cm-editor {
   height: 100%;
-  font-size: var(--nf-font-size, 15px);
+  font-size: var(--nf-font-size, 16px);
 }
 .nf-editor .cm-editor.cm-focused {
   outline: none;
 }
 .nf-editor .cm-scroller {
-  font-family: inherit;
-  line-height: var(--nf-line-height, 1.9);
-  padding: 12px 4px 40vh 8px;
+  font-family: var(--font-sans);
+  line-height: var(--nf-line-height, 2);
+  padding: 20px clamp(16px, 5vw, 72px) 40vh clamp(16px, 5vw, 72px);
+  background-color: transparent;
 }
 .nf-editor .cm-content {
-  caret-color: #0f172a;
+  caret-color: #9e2b25;
+}
+.nf-editor .cm-gutters {
+  background: transparent;
+  border: none;
 }
 
-/* ---- 深色主题：Tailwind v4 的颜色工具类都走 var(--color-*)，这里按需覆盖常用面 ---- */
+/* ---- 玄墨夜读（深色主题）：暖褐黑纸 + 淡墨字；沿用 data-theme 机制 ---- */
 html[data-theme='dark'] body {
-  background-color: #0b1220;
-  color: #e2e8f0;
+  background-color: #171208;
+  background-image:
+    radial-gradient(ellipse at center top, rgba(70, 58, 38, 0.25), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  color: #e8dcc0;
+}
+html[data-theme='dark'] ::selection {
+  background: rgba(184, 59, 48, 0.35);
+  color: #f3ead2;
+}
+html[data-theme='dark'] * {
+  scrollbar-color: #5a4a2e transparent;
+}
+html[data-theme='dark'] *::-webkit-scrollbar-thumb {
+  background: #5a4a2e;
+  border-color: rgba(23, 18, 8, 0.6);
+}
+html[data-theme='dark'] *::-webkit-scrollbar-thumb:hover {
+  background: #6f5a38;
+}
+html[data-theme='dark'] h1,
+html[data-theme='dark'] h2,
+html[data-theme='dark'] h3 {
+  color: #f0e6cc;
 }
 html[data-theme='dark'] .bg-white {
-  background-color: #111827 !important;
+  background-color: #211a0e !important;
 }
 html[data-theme='dark'] .bg-slate-50,
 html[data-theme='dark'] .bg-slate-50\/60 {
-  background-color: #0f172a !important;
+  background-color: #1b1509 !important;
 }
 html[data-theme='dark'] .bg-slate-100 {
-  background-color: #1e293b !important;
+  background-color: #262013 !important;
 }
 html[data-theme='dark'] .bg-slate-200 {
-  background-color: #334155 !important;
+  background-color: #33291a !important;
 }
 html[data-theme='dark'] .bg-slate-800 {
-  background-color: #e2e8f0 !important;
+  background-color: #e8dcc0 !important;
 }
 html[data-theme='dark'] .text-slate-900,
 html[data-theme='dark'] .text-slate-800 {
-  color: #e2e8f0 !important;
+  color: #f0e6cc !important;
 }
 html[data-theme='dark'] .text-slate-700 {
-  color: #cbd5e1 !important;
+  color: #ddd0b0 !important;
 }
 html[data-theme='dark'] .text-slate-600 {
-  color: #94a3b8 !important;
+  color: #b3a37f !important;
 }
 html[data-theme='dark'] .text-slate-500,
 html[data-theme='dark'] .text-slate-400 {
-  color: #94a3b8 !important;
+  color: #a08d68 !important;
 }
 html[data-theme='dark'] .border-slate-100,
 html[data-theme='dark'] .border-slate-200,
 html[data-theme='dark'] .border-slate-300 {
-  border-color: #334155 !important;
+  border-color: #3a2f1c !important;
 }
 html[data-theme='dark'] .hover\:bg-slate-50:hover,
 html[data-theme='dark'] .hover\:bg-slate-100:hover,
 html[data-theme='dark'] .hover\:bg-white:hover {
-  background-color: #1e293b !important;
+  background-color: #2a2213 !important;
 }
 html[data-theme='dark'] .hover\:bg-slate-200:hover {
-  background-color: #334155 !important;
+  background-color: #33291a !important;
 }
 html[data-theme='dark'] .hover\:bg-slate-700:hover {
-  background-color: #cbd5e1 !important;
+  background-color: #f0e6cc !important;
 }
 html[data-theme='dark'] .nf-editor .cm-editor {
-  background-color: #0b1220 !important;
+  background-color: #1b1509 !important;
 }
 html[data-theme='dark'] .nf-editor .cm-content {
-  caret-color: #e2e8f0;
+  caret-color: #d0685c;
+  color: #e8dcc0;
 }
 html[data-theme='dark'] .nf-editor .cm-scroller {
-  color: #e2e8f0;
+  color: #e8dcc0;
 }

@@ -18,26 +18,44 @@ function Welcome() {
   const createDialog = useProjectStore((s) => s.createDialog)
   const openDialog = useProjectStore((s) => s.openDialog)
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-slate-800">NovelFlow</h1>
-        <p className="mt-2 text-slate-500">小说写作工作台 · 项目即文件夹，设定/大纲/正文/状态各自成文件</p>
+    <div className="relative flex h-full flex-col items-center justify-center gap-6 overflow-hidden">
+      {/* 背景淡墨字，营造书卷气 */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span className="select-none font-brush text-[26rem] leading-none text-slate-700 opacity-[0.045]">
+          文
+        </span>
       </div>
-      <div className="flex gap-3">
+
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <div className="flex items-center gap-4">
+          <span className="nf-seal h-12 w-12 text-xl">墨</span>
+          <div className="text-left">
+            <h1 className="text-4xl font-bold tracking-wide text-slate-900">NovelFlow</h1>
+            <p className="mt-1 font-brush text-base tracking-[0.35em] text-slate-600">小说写作工作台</p>
+          </div>
+        </div>
+        <hr className="nf-brush-rule mt-5 w-64" />
+        <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+          项目即文件夹 · 设定、大纲、正文、状态各自成卷
+        </p>
+      </div>
+
+      <div className="relative z-10 flex gap-3">
         <button
           onClick={() => void createDialog()}
-          className="rounded bg-blue-600 px-6 py-2.5 text-white hover:bg-blue-500"
+          className="nf-btn-ink rounded border border-slate-600/30 bg-slate-800 px-7 py-2.5 text-white transition hover:bg-slate-700 active:translate-y-px"
         >
           新建项目
         </button>
         <button
           onClick={() => void openDialog()}
-          className="rounded border border-slate-300 bg-white px-6 py-2.5 text-slate-700 hover:bg-slate-100"
+          className="rounded border border-slate-300 bg-white px-7 py-2.5 text-slate-700 transition hover:bg-slate-100 active:translate-y-px"
         >
           打开项目
         </button>
       </div>
-      <p className="max-w-md text-center text-xs text-slate-400">
+
+      <p className="relative z-10 max-w-md text-center text-xs leading-5 text-slate-500">
         新建项目将生成标准目录结构：novel.json、bible/（故事框架）、outline/（章节计划）、chapters/（正文）、
         state/（人物状态、伏笔、事件）、runs/、.history/
       </p>
@@ -74,9 +92,10 @@ export default function App() {
     <ErrorBoundary>
       <div className="flex h-full flex-col">
         {/* 顶栏 */}
-        <header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
+        <header className="flex shrink-0 items-center justify-between border-b border-slate-300/70 bg-white px-4 py-2 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-slate-800">NovelFlow</span>
+            <span className="nf-seal h-7 w-7 text-sm">卷</span>
+            <span className="font-brush text-lg font-bold tracking-wide text-slate-900">NovelFlow</span>
             <span className="max-w-[240px] truncate text-sm text-slate-500">
               {project ? project.name : '未打开项目'}
             </span>
