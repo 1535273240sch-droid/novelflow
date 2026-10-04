@@ -2,7 +2,9 @@
 
 桌面端小说写作软件：接入任意大模型（OpenAI 兼容 / Anthropic 原生协议），把写作 Skill 串成工作流（M2 起）。本项目即文件夹，设定、大纲、正文、状态各自成文件，可读可备份。
 
-当前进度：**M1–M5 已完成**（骨架与模型接入 / Skill 系统 / 框架与上下文组装 / 工作流 / 打磨与打包）。
+当前进度：**M1–M5 已完成并发布 v1.0.0**；m6 终审为「部分达成」（功能与自动化验证通过，独立验证与人工真机冒烟未做，见 [docs/终审报告.md](docs/终审报告.md)）。
+
+> 安装包：[Releases · v1.0.0](https://github.com/1535273240sch-droid/novelflow/releases/tag/v1.0.0)（Windows `NovelFlow-Setup-1.0.0.exe`，由 GitHub Actions 构建）。
 
 ## 如何运行
 

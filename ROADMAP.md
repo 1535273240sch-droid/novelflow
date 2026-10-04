@@ -22,9 +22,9 @@
 | M2 Skill 系统 | ✅ 完成 | `4613d08` | ⚠️ 本机 `npm test`(112) + `npm run build` + `--smoke-test` 全绿；独立验证待补 |
 | M3 框架与上下文组装 | ✅ 完成 | `45db535` | ⚠️ 本机 `npm test`(144) + `build` + `--smoke-test` 全绿；独立验证待补 |
 | M4 工作流 | ✅ 完成 | `a48c9ab` | ⚠️ 本机 `npm test`(169) + `build` + `--smoke-test` 全绿；崩溃恢复为同机模拟用例，独立验证待补 |
-| M5 打磨与打包 | ✅ 完成 | 见提交 | ⚠️ 本机 `npm test`(181) + `build` + `--smoke-test` + `npm run dist`（产出 NovelFlow-Setup exe）+ `benchmark`(1883ms) 全绿；独立验证待补 |
-| m5b 发布（CI+版本+说明） | ✅ 完成 | 见提交 | version 1.0.0、CI workflow、使用说明、LICENSE、敏感信息扫描 PASS；tag 触发 Release 待运行 |
-| m6 终审 | ⬜ 未开始 | — | — |
+| M5 打磨与打包 | ✅ 完成 | `881c3f8` | ⚠️ 本机 `npm test`(181) + `build` + `--smoke-test` + `npm run dist` + `benchmark`(1883ms) 全绿；独立验证待补 |
+| m5b 发布（CI+版本+说明） | ✅ 完成 | `881c3f8` + CI `fa4d6b4` | ✅ CI run #6 success，Release `v1.0.0` 附 `NovelFlow-Setup-1.0.0.exe`(83.79MB)；敏感信息扫描 PASS |
+| m6 终审 | ⚠️ 部分达成 | 见 [docs/终审报告.md](docs/终审报告.md) | PARTIALLY ACHIEVED：功能与自动化验证达成；**独立验证者缺失、人工真机冒烟未做**（如实标注） |
 
 ### M1 已交付内容（已完成并验证）
 - Electron+Vite+React18+TS 脚手架，`npm run dev` 可启动（含 `--smoke-test` 自退出冒烟）
