@@ -91,6 +91,33 @@
 
 - 纯 Node http 实现（零依赖）。`--fail 429|500|503|timeout` + `--fail-times` 全局注入，或查询参数 `?fail=...&times=...` 临时覆盖；`--key` 启用 Bearer 校验以测 401；`--hang-ms` 控制超时挂起时长；`--chunk-delay-ms`/`--stream-chars` 控制流式节奏。中文按「码点」切片，保证每片都是合法 UTF-8。
 
+## 19. SKILL.md 头部：自写最小 YAML 子集，不引第三方 YAML 依赖
+
+- 只支持 `key: value`、内联数组、块状列表与双引号转义；不支持锚点、多行折叠、嵌套映射。
+- 理由：README 明确「无闭源依赖」，且 Skill 头部是本项目自定义的固定 schema，用不到的语法不实现。代价已在 `parser.ts` 注明。
+- 头部损坏或正文为空时明确抛 `SkillParseError`，单个坏文件只从列表移除，不影响其余。
+
+## 20. Skill 库落盘位置：随包 `skills/` → 首次 seed 到 `userData/skills`
+
+- 内置 8 个 Skill 随仓库分发（`skills/*.md`），首次运行复制到用户目录；用户编辑/新增/导入都发生在用户目录，升级不覆盖。
+- `builtin` 标记由「id 是否出现在仓库 skills/ 目录」实时判定，因此编辑内置 Skill 后仍显示「内置」，但版本号递增、内容以用户版本为准。
+- `createdAt/updatedAt` 存同目录 `.{id}.meta.json` sidecar，避免往 SKILL.md 契约里塞私有字段。
+
+## 21. 差异算法：行级 LCS，超长文本退化整块替换
+
+- `src/shared/diff.ts` 为纯函数，主/渲染共用、可直接单测。行数超过 4000 时退化为「保留首尾公共行 + 中间整块替换」，避免 O(n·m) 卡死。
+- 逐处接受/拒绝的依据是「连续非 equal 行」聚合出的 change 块 id；重建时 equal 恒取原文，change 取接受侧。
+
+## 22. 结构化输出解析：四级阶梯 + 优雅降级
+
+- 顺序：严格 JSON（数组或 `{issues:[]}`）→ 从混杂文本抠平衡数组 → 行式 `原文 → 建议` → 降级为纯文本（`degraded=true`）。
+- 数组内出现畸形元素不作为半截清单使用，而是继续降级；降级不抛异常，界面展示原始输出并提示。
+
+## 23. 「对选中文本运行」用编辑器偏移量精确拼接
+
+- CodeMirror 选区变化上报文本与 `from/to` 偏移；应用改写时按偏移拼回完整文件，避免「同名片段被替换到错误位置」。
+- 偏移失效（文档已被编辑）时退化为「替换首个完全匹配的选区文本」。
+
 ## 捷径清单（development 诚信模式）
 
 1. **设置存 JSON 而非 SQLite**：运行记录/索引类需求 M4 才上 better-sqlite3；m1 的 settings.json 原子写足够。
@@ -101,3 +128,7 @@
 6. **novel.json 的 modelPresetId 字段预留**：M1 界面未提供绑定入口（角色映射已覆盖 M1 需求），字段与 IPC（project:updateMeta）已就位。
 7. **渲染进程「窗口关闭前强制保存」未做**：依赖 3.5 秒自动保存兜底；宽限期保存属 M5 打磨范畴。
 8. **Electron 36 二进制安装**：npm postinstall 曾因网络失败，本机用 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` + 手动解压修复；README 已写明镜像用法（环境问题，非代码捷径，如实记录）。
+9. **Skill 运行不落 runs/ 运行记录**：M2 只做「运行 + 应用 + 快照」，运行历史的 SQLite 持久化属 M4（见第 20 条与 ROADMAP M4）。
+10. **差异视图只做行级**：不做到字符级内联高亮；网文以段落/句子为改动单位，行级足够（M5 若需要再增强）。
+11. **「生成故事框架」「章节规划」等 Skill 依赖尚未由界面装配的上下文变量**：M2 阶段这些 Skill 可运行但需要调用方提供相应变量（如 `premise`、`chapter_plan`）；完整上下文装配与门禁属 M3。
+12. **主进程未做 Skill 运行并发隔离**：与 LLM 共用同一 Semaphore（默认 2），M2 足够。

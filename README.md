@@ -2,7 +2,7 @@
 
 桌面端小说写作软件：接入任意大模型（OpenAI 兼容 / Anthropic 原生协议），把写作 Skill 串成工作流（M2 起）。本项目即文件夹，设定、大纲、正文、状态各自成文件，可读可备份。
 
-当前进度：**M1 骨架与模型接入已完成**（本仓库第一个提交）。
+当前进度：**M1 骨架与模型接入、M2 Skill 系统已完成**。
 
 ## 如何运行
 
@@ -39,8 +39,7 @@ node scripts/mock-openai-server.mjs [--port 8801] [--key secret123] \
 
 ## 已完成功能（M1）
 
-- **工程骨架**：Electron + Vite + React 18 + TypeScript + Zustand + Tailwind CSS 4；主进程/预加载/渲染进程三层隔离（contextIsolation，渲染进程无 Node 能力）
-- **项目管理**：新建/打开项目（系统目录选择框），按说明书 3.1 生成完整目录结构：`novel.json`、`bible/`（00-概述、01-世界观、02-人物/、03-主线与卷纲、04-文风规范、05-时间线）、`outline/`、`chapters/`、`state/`（characters.json、foreshadowing.json、events.json）、`runs/`、`.history/`
+- **工程骨架**：Electron + Vite + React 18 + TypeScript + Zustand + Tailwind CSS 4；主进程/预加载/渲染进程三层隔离（contextIsolation，渲染进程无 Node 能力）- **项目管理**：新建/打开项目（系统目录选择框），按说明书 3.1 生成完整目录结构：`novel.json`、`bible/`（00-概述、01-世界观、02-人物/、03-主线与卷纲、04-文风规范、05-时间线）、`outline/`、`chapters/`、`state/`（characters.json、foreshadowing.json、events.json）、`runs/`、`.history/`
 - **模型预设管理**：任意数量预设的增删改，字段：名称/协议（openai-compatible | anthropic）/base_url/api_key/模型名/上下文长度/默认温度/最大输出；「测试连接」按钮显示成功延迟或失败原因
 - **模型角色映射**：规划/写作/检查/润色 四个角色分别指向某预设
 - **主进程 LLM 调用层**：流式输出（SSE，OpenAI 与 Anthropic 两种协议）；连接超时与流式空闲超时；429/5xx/超时指数退避重试（最多 3 次，1000/2000/4000ms）；随时取消；并发限制（默认 2，可在设置中修改）；流式刷新节流（默认 80ms，可配置）
@@ -50,27 +49,46 @@ node scripts/mock-openai-server.mjs [--port 8801] [--key secret123] \
 - **原子写**：所有文件写入走「同目录临时文件 → rename 覆盖」，Windows EPERM/EBUSY 自动重试
 - **稳定性**：渲染进程全局错误边界；主进程 `uncaughtException`/`unhandledRejection` 记录日志并保持存活；`--smoke-test` 自退出冒烟模式
 
+## 已完成功能（M2：Skill 系统）
+
+- **标准 SKILL.md 库**：`skills/` 目录内置 8 个 Skill（生成故事框架 / 章节规划 / 正文写作 / 错别字与病句检查 / 润色 / 去AI味 / 一致性检查 / 状态回写），YAML 头 + 正文；首次运行 seed 到用户目录，可**编辑 / 复制 / 导入 / 导出 / 删除**，编辑保存后**版本号递增**
+- **变量替换**：`{{chapter_text}}`、`{{selection}}` 等顶层变量与 `{{bible.文风规范}}` 项目文件变量；**缺变量明确报错**并点名，不静默留空
+- **对「整章」/「选中文本」运行**：结果按类型呈现——改写类走**差异视图逐处接受 / 拒绝**；检查类输出**结构化问题清单**（位置 / 原文 / 建议）逐条接受，**不直接改全文**
+- **检查类结构化工单**：模型输出畸形（加解释、半截 JSON、非 JSON）时**优雅降级**为纯文本，不崩溃
+- **改写应用前自动快照**：写入前把原文落到项目 `.history/`，支持列举 / 查看 / 还原
+- **提示词零硬编码**：所有提示词只存在于 `skills/` 目录，业务代码不含任何提示词（有结构化测试守卫）
+
+### 用 Skill 联调（不需要真实 Key）
+
+1. 终端 A：`npm run mock`；终端 B：`npm run dev`
+2. 设置页添加预设（base_url `http://127.0.0.1:8801/v1`，模型 mock-model）
+3. 左栏新建/打开正文章节 → 右栏「Skill」标签 → 选「润色」→ 运行 → 逐处接受后「应用」
+4. 顶栏「Skill 库」可查看/编辑 8 个内置 Skill 与导入外部 SKILL.md
+
 ## 目录结构（本仓库）
 
 ```
 novelflow/
+├── skills/                       # 8 个内置 Skill（SKILL.md：YAML 头 + 提示词正文）
 ├── scripts/
 │   ├── dev.mjs                   # 开发编排（vite + esbuild + electron，零额外依赖）
 │   ├── build-main.mjs            # 主进程/preload esbuild 构建
 │   └── mock-openai-server.mjs    # 本地 OpenAI 兼容 mock（流式/401/429/5xx/超时注入）
 ├── src/
 │   ├── shared/types.ts           # 主/预加载/渲染 共享类型与 IPC 契约
+│   ├── shared/diff.ts            # 行级差异（逐处接受/拒绝）纯函数
 │   ├── main/
 │   │   ├── index.ts              # 主进程入口、窗口、--smoke-test
 │   │   ├── logger.ts             # 脱敏日志
 │   │   ├── ipc/register.ts       # 全部 IPC 注册
 │   │   └── services/
 │   │       ├── llm/              # adapters（双协议）/service（重试/取消/并发）/sse/throttle/concurrency/redact
-│   │       ├── storage/          # atomic（原子写）/project（3.1 结构）/settings-store（加密预设）
+│   │       ├── skills/           # parser（SKILL.md）/registry（版本与增删改）/runner（上下文与调用）/vars/output
+│   │       ├── storage/          # atomic（原子写）/project（3.1 结构）/settings-store（加密预设）/snapshot（.history）
 │   │       └── secrets/          # safeStorage 封装
 │   ├── preload/index.ts          # contextBridge 暴露 window.novelflow
-│   └── renderer/                 # React 界面（App/编辑器/项目树/设置页/试写面板）
-└── tests/                        # vitest：tests/llm（调用层）、tests/storage（存储层）
+│   └── renderer/                 # React 界面（App/编辑器/项目树/设置页/试写面板/Skill 库/差异视图）
+└── tests/                        # vitest：tests/llm、tests/storage、tests/skills
 ```
 
 ## 依赖与 License

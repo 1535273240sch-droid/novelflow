@@ -21,6 +21,7 @@ export function EditorPane() {
   const lastSavedAt = useProjectStore((s) => s.lastSavedAt)
   const streamStatus = useProjectStore((s) => s.streamStatus)
   const setContent = useProjectStore((s) => s.setContent)
+  const setSelection = useProjectStore((s) => s.setSelection)
   const saveNow = useProjectStore((s) => s.saveNow)
   const showToast = useUiStore((s) => s.showToast)
   const autoSaveMs = useSettingsStore((s) => s.settings?.config.autoSaveMs ?? 3500)
@@ -81,7 +82,7 @@ export function EditorPane() {
       </div>
 
       <div className="min-h-0 flex-1">
-        <CodeMirrorEditor value={content} onChange={setContent} />
+        <CodeMirrorEditor value={content} onChange={setContent} onSelectionChange={(t, f, to) => setSelection(t, f, to)} />
       </div>
 
       <div className="flex items-center justify-between border-t border-slate-200 px-4 py-1.5 text-xs text-slate-500">

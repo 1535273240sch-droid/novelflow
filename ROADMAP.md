@@ -19,7 +19,7 @@
 | 里程碑 | 状态 | 提交 | 独立验证 |
 |---|---|---|---|
 | M1 骨架与模型接入 | ✅ 完成 | `ac64446` | ✅ auditor 独立复现 REPRODUCED（10/10 项） |
-| M2 Skill 系统 | 🔄 实现中 | 待提交 | 待 critic 验证 |
+| M2 Skill 系统 | ✅ 完成 | `4613d08` | ⚠️ 本机 `npm test`(112) + `npm run build` + `--smoke-test` 全绿；独立验证待补 |
 | M3 框架与上下文组装 | ⬜ 未开始 | — | — |
 | M4 工作流 | ⬜ 未开始 | — | — |
 | M5 打磨与打包 | ⬜ 未开始 | — | — |
@@ -36,9 +36,12 @@
 - 安全：API Key 仅 safeStorage 加密落盘、日志脱敏；写文件临时文件+原子重命名
 - 测试 42 用例全绿（vitest，全 mock 零真实 Key）
 
-### M2 当前状态（若电脑重启从此接续）
-代码已大部分落盘（未提交）：8 个内置 SKILL.md、`src/main/services/skills/{parser,registry,runner,vars,output}.ts`、`storage/snapshot.ts`、`renderer/components/{skills,diff}/`、`stores/skill.ts`、`tests/skills/` 6 个测试文件。
-剩余：自查接线（IPC 注册/preload/App 挂载）→ 更新 README/DECISIONS → `npm test` 全绿 + `npm run build` → git 第二次提交 → 推送 → critic 独立验证。
+### M2 当前状态（已完成并推送）
+8 个内置 SKILL.md（`skills/`）、`src/main/services/skills/{parser,registry,runner,vars,output}.ts`、
+`storage/snapshot.ts`、`shared/diff.ts`、`renderer/components/{skills,diff}/`、`stores/skill.ts`、
+`tests/skills/` 6 个测试文件。IPC / preload / App 已接线；README / DECISIONS 已更新。
+验证：`npm test` 112 通过 / 0 失败、`npm run build`（tsc + vite + esbuild）通过、`--smoke-test` 输出 SMOKE_OK。
+**未做**：critic 独立复跑（本次为同机自测，尚未由未参与实现的验证者重跑）。
 
 ---
 

@@ -127,6 +127,97 @@ export interface LlmEvent {
   cancelled?: boolean
 }
 
+// ---------------- M2：Skill 系统 ----------------
+
+/** Skill 输出形态：text=普通文本产物；rewrite=可逐处接受的改写；issues=结构化问题清单 */
+export type SkillOutputKind = 'text' | 'rewrite' | 'issues'
+
+/** Skill 元数据（列表页用，不含正文提示词） */
+export interface SkillMeta {
+  id: string
+  name: string
+  description: string
+  /** 编辑保存后递增 */
+  version: number
+  recommendedModel: ModelRole | null
+  output: SkillOutputKind
+  /** 声明使用的变量名（如 chapter_text、bible.文风规范） */
+  inputs: string[]
+  /** 是否来自内置 skills/ 目录 */
+  builtin: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** 完整 Skill（含正文提示词，仅在主进程读取后经 IPC 传给设置/编辑界面） */
+export interface Skill extends SkillMeta {
+  body: string
+}
+
+/** 运行目标：选中文本 / 整章 */
+export type SkillTarget = 'selection' | 'chapter'
+
+export interface SkillRunParams {
+  skillId: string
+  /** 指定预设；缺省时按 Skill 的 recommendedModel 走角色映射 */
+  presetId?: string
+  target: SkillTarget
+  /** 章节正文或选中文本 */
+  text: string
+  /** 章号（章节规划/状态回写等 Skill 需要） */
+  chapterNo?: number
+  /** 用户补充的变量 */
+  vars?: Record<string, string>
+}
+
+/** 结构化的错别字/病句/一致性条目 */
+export interface SkillIssue {
+  original: string
+  suggestion: string
+  reason?: string
+  /** 在目标文本中的起始下标（可为空） */
+  index?: number
+  /** 1 起行号（可为空） */
+  line?: number
+}
+
+export interface SkillRunResult {
+  kind: SkillOutputKind
+  /** 模型原始输出 */
+  raw: string
+  /** rewrite/text 形态的最终文本 */
+  text?: string
+  /** issues 形态的解析结果 */
+  issues?: SkillIssue[]
+  /** 结构化输出畸形、已优雅降级为纯文本时置 true */
+  degraded?: boolean
+  degradedReason?: string
+}
+
+export type SkillEventType = 'delta' | 'done' | 'error'
+
+export interface SkillEvent {
+  callId: string
+  type: SkillEventType
+  /** 到当前为止的完整文本（全量快照语义） */
+  full: string
+  result?: SkillRunResult
+  error?: string
+  cancelled?: boolean
+}
+
+/** 历史快照条目（.history/） */
+export interface SnapshotEntry {
+  /** 快照 id（用于读取/还原） */
+  id: string
+  /** 来源文件相对路径 */
+  relPath: string
+  /** 展示名（来源文件名） */
+  name: string
+  createdAt: string
+  size: number
+}
+
 /** 测试连接结果 */
 export interface TestConnectionResult {
   ok: boolean
@@ -152,6 +243,8 @@ export interface Api {
     read(relPath: string): Promise<string>
     /** 原子写入（临时文件 + 重命名） */
     write(relPath: string, content: string): Promise<void>
+    /** 写入前先把当前内容快照到 .history/（用于应用 Skill 改写） */
+    writeWithSnapshot(relPath: string, content: string): Promise<void>
     /** 在 chapters/ 或 outline/ 下新建 第NNN章.md，返回文件名 */
     createChapter(kind: 'chapters' | 'outline'): Promise<string>
   }
@@ -171,6 +264,32 @@ export interface Api {
   }
   clipboard: {
     writeText(text: string): Promise<void>
+  }
+  skills: {
+    /** 内置 + 用户自建 Skill 列表 */
+    list(): Promise<SkillMeta[]>
+    get(id: string): Promise<Skill | null>
+    /** 弹出文件选择框导入 SKILL.md，返回入库后的 Skill */
+    importDialog(): Promise<Skill | null>
+    /** 从文本导入（供自动化/测试） */
+    importText(fileName: string, content: string): Promise<Skill>
+    /** 保存（编辑）→ 版本号递增 */
+    save(skill: Skill): Promise<Skill>
+    duplicate(id: string): Promise<Skill>
+    remove(id: string): Promise<void>
+    /** 弹出保存框导出 SKILL.md，返回导出路径（取消为 null） */
+    exportDialog(id: string): Promise<string | null>
+    /** 运行（流式），返回 callId；结果经 onEvent 推送 */
+    run(params: SkillRunParams): Promise<string>
+    cancel(callId: string): Promise<boolean>
+    onEvent(cb: (ev: SkillEvent) => void): () => void
+  }
+  history: {
+    /** 列出某文件的全部快照（不传则列全部） */
+    list(relPath?: string): Promise<SnapshotEntry[]>
+    read(id: string): Promise<string>
+    /** 还原快照到其来源文件（还原前会先对当前内容再做一次快照） */
+    restore(id: string): Promise<void>
   }
   app: {
     version(): Promise<string>

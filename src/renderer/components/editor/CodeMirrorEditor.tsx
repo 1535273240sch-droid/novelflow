@@ -7,6 +7,8 @@ import { markdown } from '@codemirror/lang-markdown'
 interface Props {
   value: string
   onChange: (text: string) => void
+  /** 选区变化（Skill「对选中文本运行」用）；无选区时回调空串与折叠区间 */
+  onSelectionChange?: (text: string, from: number, to: number) => void
 }
 
 /**
@@ -14,11 +16,13 @@ interface Props {
  * - 按文档增量更新，适合长章节；word wrap；撤销历史；
  * - 外部值（按章加载 / 流式追加）与内部编辑双向同步，值相等时跳过避免回环。
  */
-export function CodeMirrorEditor({ value, onChange }: Props) {
+export function CodeMirrorEditor({ value, onChange, onSelectionChange }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+  const onSelectionRef = useRef(onSelectionChange)
+  onSelectionRef.current = onSelectionChange
 
   useEffect(() => {
     if (!hostRef.current) return
@@ -38,6 +42,14 @@ export function CodeMirrorEditor({ value, onChange }: Props) {
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString())
+            }
+            if (update.selectionSet || update.docChanged) {
+              const sel = update.state.selection.main
+              onSelectionRef.current?.(
+                sel.empty ? '' : update.state.sliceDoc(sel.from, sel.to),
+                sel.from,
+                sel.to
+              )
             }
           })
         ]

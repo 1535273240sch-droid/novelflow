@@ -14,6 +14,11 @@ interface ProjectState {
   dirty: boolean
   saving: boolean
   lastSavedAt: string | null
+  /** 编辑器当前选中的文本（Skill「对选中文本运行」用） */
+  selection: string
+  /** 选区在文档中的起止下标（用于精确替换） */
+  selectionFrom: number
+  selectionTo: number
   /** 流式生成状态 */
   streamCallId: string | null
   streamStatus: 'idle' | 'streaming'
@@ -28,7 +33,10 @@ interface ProjectState {
   openFile: (relPath: string) => Promise<void>
   newChapter: (kind: 'chapters' | 'outline') => Promise<void>
   setContent: (text: string) => void
+  setSelection: (text: string, from: number, to: number) => void
   saveNow: () => Promise<boolean>
+  /** 用整段新内容替换当前文件（先快照到 .history/），用于应用 Skill 改写 */
+  applyContent: (text: string) => Promise<void>
   /** 记录流式调用的 callId（早于 callId 到达的事件会被缓冲，在这里回放） */
   startStream: (callId: string) => void
   appendStream: (full: string) => void
@@ -66,6 +74,9 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     dirty: false,
     saving: false,
     lastSavedAt: null,
+    selection: '',
+    selectionFrom: 0,
+    selectionTo: 0,
     streamCallId: null,
     streamStatus: 'idle',
     streamBase: '',
@@ -138,6 +149,20 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
     setContent: (text) =>
       set((s) => (s.content === text ? s : { content: text, dirty: true })),
+
+    setSelection: (text, from, to) =>
+      set((s) =>
+        s.selection === text && s.selectionFrom === from && s.selectionTo === to
+          ? s
+          : { selection: text, selectionFrom: from, selectionTo: to }
+      ),
+
+    applyContent: async (text) => {
+      const st = get()
+      if (!st.currentPath) return
+      await window.novelflow.files.writeWithSnapshot(st.currentPath, text)
+      set({ content: text, dirty: false, lastSavedAt: new Date().toLocaleTimeString('zh-CN') })
+    },
 
     saveNow: async () => {
       const st = get()

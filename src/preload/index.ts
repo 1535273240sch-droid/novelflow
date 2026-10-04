@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Api, LlmEvent } from '../shared/types'
+import type { Api, LlmEvent, SkillEvent } from '../shared/types'
 
 /**
  * 预加载脚本：以 contextIsolation 方式暴露窄接口 window.novelflow。
@@ -17,6 +17,8 @@ const api: Api = {
     list: (relDir) => ipcRenderer.invoke('files:list', relDir),
     read: (relPath) => ipcRenderer.invoke('files:read', relPath),
     write: (relPath, content) => ipcRenderer.invoke('files:write', relPath, content),
+    writeWithSnapshot: (relPath, content) =>
+      ipcRenderer.invoke('files:writeWithSnapshot', relPath, content),
     createChapter: (kind) => ipcRenderer.invoke('files:createChapter', kind)
   },
   settings: {
@@ -38,6 +40,28 @@ const api: Api = {
   },
   clipboard: {
     writeText: (text) => ipcRenderer.invoke('clipboard:write', text)
+  },
+  skills: {
+    list: () => ipcRenderer.invoke('skills:list'),
+    get: (id) => ipcRenderer.invoke('skills:get', id),
+    importDialog: () => ipcRenderer.invoke('skills:importDialog'),
+    importText: (fileName, content) => ipcRenderer.invoke('skills:importText', fileName, content),
+    save: (skill) => ipcRenderer.invoke('skills:save', skill),
+    duplicate: (id) => ipcRenderer.invoke('skills:duplicate', id),
+    remove: (id) => ipcRenderer.invoke('skills:remove', id),
+    exportDialog: (id) => ipcRenderer.invoke('skills:exportDialog', id),
+    run: (params) => ipcRenderer.invoke('skills:run', params),
+    cancel: (callId) => ipcRenderer.invoke('skills:cancel', callId),
+    onEvent: (cb: (ev: SkillEvent) => void) => {
+      const handler = (_e: unknown, ev: SkillEvent) => cb(ev)
+      ipcRenderer.on('skill:event', handler)
+      return () => ipcRenderer.removeListener('skill:event', handler)
+    }
+  },
+  history: {
+    list: (relPath) => ipcRenderer.invoke('history:list', relPath),
+    read: (id) => ipcRenderer.invoke('history:read', id),
+    restore: (id) => ipcRenderer.invoke('history:restore', id)
   },
   app: {
     version: () => ipcRenderer.invoke('app:version')
