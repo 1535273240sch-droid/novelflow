@@ -240,14 +240,18 @@ function toMeta(skill: Skill): SkillMeta {
     recommendedModel: skill.recommendedModel,
     output: skill.output,
     inputs: skill.inputs,
+    requires: skill.requires,
+    ...(skill.writesTo ? { writesTo: skill.writesTo } : {}),
     builtin: skill.builtin,
     createdAt: skill.createdAt,
     updatedAt: skill.updatedAt
   }
 }
 
-function metaSignature(s: Pick<Skill, 'name' | 'description' | 'output' | 'recommendedModel' | 'inputs'>): unknown {
-  return [s.name, s.description, s.output, s.recommendedModel, s.inputs]
+function metaSignature(
+  s: Pick<Skill, 'name' | 'description' | 'output' | 'recommendedModel' | 'inputs' | 'requires' | 'writesTo'>
+): unknown {
+  return [s.name, s.description, s.output, s.recommendedModel, s.inputs, s.requires, s.writesTo ?? null]
 }
 
 /** 由文件名派生合法 id：保留中文，去掉路径分隔符与文件系统禁用字符。 */

@@ -24,6 +24,7 @@ function makeSkill(patch: Partial<Skill> = {}): Skill {
     recommendedModel: 'writer',
     output: 'rewrite',
     inputs: ['chapter_text'],
+    requires: [],
     body: '请处理：{{chapter_text}}',
     builtin: false,
     createdAt: now,

@@ -51,6 +51,7 @@ const api: Api = {
     remove: (id) => ipcRenderer.invoke('skills:remove', id),
     exportDialog: (id) => ipcRenderer.invoke('skills:exportDialog', id),
     run: (params) => ipcRenderer.invoke('skills:run', params),
+    preview: (params) => ipcRenderer.invoke('skills:preview', params),
     cancel: (callId) => ipcRenderer.invoke('skills:cancel', callId),
     onEvent: (cb: (ev: SkillEvent) => void) => {
       const handler = (_e: unknown, ev: SkillEvent) => cb(ev)
@@ -62,6 +63,15 @@ const api: Api = {
     list: (relPath) => ipcRenderer.invoke('history:list', relPath),
     read: (id) => ipcRenderer.invoke('history:read', id),
     restore: (id) => ipcRenderer.invoke('history:restore', id)
+  },
+  framework: {
+    applyText: (text) => ipcRenderer.invoke('framework:applyText', text)
+  },
+  state: {
+    writeback: (raw, chapterNo) => ipcRenderer.invoke('state:writeback', raw, chapterNo)
+  },
+  chapter: {
+    checkGate: (chapterNo) => ipcRenderer.invoke('chapter:checkGate', chapterNo)
   },
   app: {
     version: () => ipcRenderer.invoke('app:version')

@@ -132,6 +132,9 @@ export interface LlmEvent {
 /** Skill 输出形态：text=普通文本产物；rewrite=可逐处接受的改写；issues=结构化问题清单 */
 export type SkillOutputKind = 'text' | 'rewrite' | 'issues'
 
+/** 产物写回位置：正文 / 章节计划 / 故事框架(bible) / 状态(state) */
+export type SkillWritesTo = 'chapter' | 'outline' | 'bible' | 'state'
+
 /** Skill 元数据（列表页用，不含正文提示词） */
 export interface SkillMeta {
   id: string
@@ -143,6 +146,10 @@ export interface SkillMeta {
   output: SkillOutputKind
   /** 声明使用的变量名（如 chapter_text、bible.文风规范） */
   inputs: string[]
+  /** 前置依赖（如 chapter_plan：无本章计划则拒绝运行） */
+  requires: string[]
+  /** 产物写回位置（缺省视为 chapter） */
+  writesTo?: SkillWritesTo
   /** 是否来自内置 skills/ 目录 */
   builtin: boolean
   createdAt: string
@@ -168,6 +175,8 @@ export interface SkillRunParams {
   chapterNo?: number
   /** 用户补充的变量 */
   vars?: Record<string, string>
+  /** 覆盖本次上下文 token 预算（默认 6000） */
+  budget?: number
 }
 
 /** 结构化的错别字/病句/一致性条目 */
@@ -194,6 +203,20 @@ export interface SkillRunResult {
   degradedReason?: string
 }
 
+/** 「查看本次实际发送的上下文」预览（与实际发送一致） */
+export interface SkillPreview {
+  skillId: string
+  skillName: string
+  kind: SkillOutputKind
+  writesTo: SkillWritesTo
+  targetText: string
+  /** 各变量最终取值 */
+  variables: Record<string, string>
+  /** 实际发送给模型的完整提示词 */
+  prompt: string
+  context?: { budget: number; totalTokens: number; droppedKeys: string[]; overBudget: boolean }
+}
+
 export type SkillEventType = 'delta' | 'done' | 'error'
 
 export interface SkillEvent {
@@ -216,6 +239,29 @@ export interface SnapshotEntry {
   name: string
   createdAt: string
   size: number
+}
+
+/** 状态回写结果（M3） */
+export interface StateWritebackResult {
+  charactersUpdated: number
+  charactersAdded: number
+  planted: number
+  resolved: number
+  eventsAdded: number
+}
+
+/** 故事框架落库结果（M3） */
+export interface FrameworkApplyResult {
+  written: string[]
+  characters: string[]
+  unknownSections: string[]
+}
+
+/** 写正文门禁检查结果（M3） */
+export interface ChapterGateResult {
+  ok: boolean
+  /** 未通过时的引导语 */
+  guidance?: string
 }
 
 /** 测试连接结果 */
@@ -281,8 +327,22 @@ export interface Api {
     exportDialog(id: string): Promise<string | null>
     /** 运行（流式），返回 callId；结果经 onEvent 推送 */
     run(params: SkillRunParams): Promise<string>
+    /** 预演：组装上下文与提示词但不调用模型（「查看本次实际发送的上下文」） */
+    preview(params: SkillRunParams): Promise<SkillPreview>
     cancel(callId: string): Promise<boolean>
     onEvent(cb: (ev: SkillEvent) => void): () => void
+  }
+  framework: {
+    /** 把「生成故事框架」的分节 Markdown 落库到 bible/ */
+    applyText(text: string): Promise<FrameworkApplyResult>
+  }
+  state: {
+    /** 把「状态回写」的 JSON 输出合并进 state/ 三个文件 */
+    writeback(raw: string, chapterNo?: number): Promise<StateWritebackResult>
+  }
+  chapter: {
+    /** 写正文门禁：本章计划是否存在（界面与单测共用同一实现） */
+    checkGate(chapterNo: number): Promise<ChapterGateResult>
   }
   history: {
     /** 列出某文件的全部快照（不传则列全部） */

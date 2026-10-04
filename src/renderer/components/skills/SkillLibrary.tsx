@@ -19,6 +19,7 @@ function emptySkill(): Skill {
     recommendedModel: 'writer',
     output: 'rewrite',
     inputs: ['chapter_text'],
+    requires: [],
     body: '# 角色\n\n你是……\n\n# 任务\n\n处理下面的文本：\n\n{{chapter_text}}\n',
     builtin: false,
     createdAt: now,

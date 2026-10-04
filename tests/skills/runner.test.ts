@@ -60,6 +60,7 @@ describe('SkillRunner：上下文组装与变量替换', () => {
       output: 'rewrite',
       inputs: ['selection'],
       body: '片段：{{selection}}',
+      requires: [],
       builtin: false,
       createdAt: '',
       updatedAt: ''
@@ -83,6 +84,7 @@ describe('SkillRunner：上下文组装与变量替换', () => {
       output: 'text',
       inputs: ['this_var_does_not_exist'],
       body: '使用 {{this_var_does_not_exist}}',
+      requires: [],
       builtin: false,
       createdAt: '',
       updatedAt: ''
@@ -103,6 +105,7 @@ describe('SkillRunner：上下文组装与变量替换', () => {
       output: 'text',
       inputs: ['custom_thing'],
       body: '自定义：{{custom_thing}}',
+      requires: [],
       builtin: false,
       createdAt: '',
       updatedAt: ''

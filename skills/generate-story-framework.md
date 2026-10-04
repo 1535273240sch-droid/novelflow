@@ -5,6 +5,7 @@ description: 依据一句话灵感与题材，产出可落库的故事框架（�
 version: 1
 recommended_model: planner
 output: text
+writes_to: bible
 inputs:
   - premise
   - genre

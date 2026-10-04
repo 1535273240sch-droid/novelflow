@@ -6,11 +6,12 @@ import { EditorPane } from './components/editor/EditorPane'
 import { StreamDemo } from './components/chat/StreamDemo'
 import { SkillRunPanel } from './components/skills/SkillRunPanel'
 import { SkillLibrary } from './components/skills/SkillLibrary'
+import { FrameworkPage } from './pages/framework/FrameworkPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ToastContainer } from './components/common/Toast'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 
-type Page = 'editor' | 'settings' | 'skills'
+type Page = 'editor' | 'settings' | 'skills' | 'framework'
 
 function Welcome() {
   const createDialog = useProjectStore((s) => s.createDialog)
@@ -84,6 +85,12 @@ export default function App() {
               打开项目
             </button>
             <button
+              onClick={() => setPage(page === 'framework' ? 'editor' : 'framework')}
+              className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
+            >
+              {page === 'framework' ? '返回编辑器' : '故事框架'}
+            </button>
+            <button
               onClick={() => setPage(page === 'skills' ? 'editor' : 'skills')}
               className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
             >
@@ -104,6 +111,8 @@ export default function App() {
             <SettingsPage onBack={() => setPage('editor')} />
           ) : page === 'skills' ? (
             <SkillLibrary onBack={() => setPage('editor')} />
+          ) : page === 'framework' ? (
+            <FrameworkPage onBack={() => setPage('editor')} />
           ) : project ? (
             <div className="grid h-full grid-cols-[220px_minmax(0,1fr)_340px]">
               <aside className="min-h-0 border-r border-slate-200 bg-slate-100">

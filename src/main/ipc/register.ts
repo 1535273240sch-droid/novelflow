@@ -7,15 +7,21 @@ import { ProjectStore, createProject, openProject, updateProjectMeta } from '../
 import { SkillRegistry } from '../services/skills/registry'
 import { SkillRunner } from '../services/skills/runner'
 import { readSnapshot, snapshotFile, snapshotRelPath, listSnapshots } from '../services/storage/snapshot'
+import { applyFramework, parseFramework } from '../services/framework/apply'
+import { applyStateWriteback, parseWriteback } from '../services/state/writeback'
+import { requireChapterPlan, ChapterGateError } from '../services/context/gates'
 import type { PresetCreds, ChatMessage } from '../services/llm/adapters'
 import type {
   ChatStartParams,
+  FrameworkApplyResult,
   LlmEvent,
   PresetInput,
   ProjectInfo,
   Skill,
   SkillEvent,
-  SkillRunParams
+  SkillPreview,
+  SkillRunParams,
+  StateWritebackResult
 } from '../../shared/types'
 
 export interface IpcContext {
@@ -316,6 +322,55 @@ export function registerIpc(ctx: IpcContext, host: IpcHost): void {
     })
   )
   ipcMain.handle('skills:cancel', (_e, callId: string) => wrap(() => ctx.llm.cancel(callId)))
+
+  ipcMain.handle('skills:preview', (_e, params: SkillRunParams) =>
+    wrap(async (): Promise<SkillPreview> => {
+      const prep = await runnerFor().prepare(params)
+      return {
+        skillId: prep.skill.id,
+        skillName: prep.skill.name,
+        kind: prep.kind,
+        writesTo: prep.skill.writesTo ?? 'chapter',
+        targetText: prep.targetText,
+        variables: prep.variables,
+        prompt: prep.messages.map((m) => `${m.role.toUpperCase()}:\n${m.content}`).join('\n\n'),
+        ...(prep.context ? { context: prep.context } : {})
+      }
+    })
+  )
+
+  // ---------- 故事框架 / 章节门禁 / 状态回写（M3） ----------
+  ipcMain.handle('framework:applyText', (_e, text: string) =>
+    wrap(async (): Promise<FrameworkApplyResult> => {
+      const parsed = parseFramework(text)
+      const written = await applyFramework(requireProject().root, parsed)
+      ctx.logger.info(`故事框架已落库：${written.length} 个文件`)
+      return { written, characters: parsed.characters.map((c) => c.name), unknownSections: parsed.unknownSections }
+    })
+  )
+
+  ipcMain.handle('state:writeback', (_e, raw: string, chapterNo?: number) =>
+    wrap(async (): Promise<StateWritebackResult> => {
+      const payload = parseWriteback(raw)
+      const result = await applyStateWriteback(requireProject().root, payload, chapterNo)
+      ctx.logger.info(
+        `状态回写：人物 +${result.charactersAdded}/~${result.charactersUpdated}，伏笔 +${result.planted}/回收 ${result.resolved}，事件 +${result.eventsAdded}`
+      )
+      return result
+    })
+  )
+
+  ipcMain.handle('chapter:checkGate', (_e, chapterNo: number) =>
+    wrap(async () => {
+      try {
+        await requireChapterPlan(requireProject().root, chapterNo)
+        return { ok: true }
+      } catch (e) {
+        if (e instanceof ChapterGateError) return { ok: false, guidance: e.guidance }
+        throw e
+      }
+    })
+  )
 
   // ---------- 历史快照（M2） ----------
   ipcMain.handle('history:list', (_e, relPath?: string) => wrap(() => listSnapshots(requireProject().root, relPath)))

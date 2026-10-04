@@ -5,6 +5,7 @@ description: 从本章正文抽取人物状态变化、新增或回收的伏笔�
 version: 1
 recommended_model: checker
 output: text
+writes_to: state
 inputs:
   - chapter_no
   - chapter_text

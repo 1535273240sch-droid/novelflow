@@ -1,5 +1,5 @@
 import type { ModelRole } from '../../../shared/types'
-import type { Skill, SkillOutputKind } from '../../../shared/types'
+import type { Skill, SkillOutputKind, SkillWritesTo } from '../../../shared/types'
 
 /**
  * SKILL.md 解析与序列化（YAML 头 + 正文）。
@@ -130,10 +130,31 @@ export function parseSkillFile(text: string, opts: { fallbackId?: string } = {})
   const inputs = Array.isArray(meta.inputs)
     ? meta.inputs.map((x) => String(x)).filter((x) => x.length > 0)
     : []
+  const requires = Array.isArray(meta.requires)
+    ? meta.requires.map((x) => String(x)).filter((x) => x.length > 0)
+    : []
+  const WRITES: SkillWritesTo[] = ['chapter', 'outline', 'bible', 'state']
+  const writesTo =
+    typeof meta.writes_to === 'string' && WRITES.includes(meta.writes_to as SkillWritesTo)
+      ? (meta.writes_to as SkillWritesTo)
+      : undefined
   const version = typeof meta.version === 'number' && meta.version > 0 ? Math.floor(meta.version) : 1
   const description = typeof meta.description === 'string' ? meta.description : ''
   if (!body.trim()) throw new SkillParseError('SKILL.md 正文为空')
-  return { skill: { id, name, description, output, recommendedModel, inputs, version, body } }
+  return {
+    skill: {
+      id,
+      name,
+      description,
+      output,
+      recommendedModel,
+      inputs,
+      requires,
+      ...(writesTo ? { writesTo } : {}),
+      version,
+      body
+    }
+  }
 }
 
 function quoteIfNeeded(v: string): string {
@@ -151,11 +172,16 @@ export function serializeSkill(skill: Skill): string {
   lines.push(`version: ${skill.version}`)
   if (skill.recommendedModel) lines.push(`recommended_model: ${skill.recommendedModel}`)
   lines.push(`output: ${skill.output}`)
+  if (skill.writesTo) lines.push(`writes_to: ${skill.writesTo}`)
   if (skill.inputs.length > 0) {
     lines.push('inputs:')
     for (const v of skill.inputs) lines.push(`  - ${quoteIfNeeded(v)}`)
   } else {
     lines.push('inputs: []')
+  }
+  if (skill.requires.length > 0) {
+    lines.push('requires:')
+    for (const v of skill.requires) lines.push(`  - ${quoteIfNeeded(v)}`)
   }
   lines.push('---', '', skill.body.replace(/\s+$/, ''), '')
   return lines.join('\n')

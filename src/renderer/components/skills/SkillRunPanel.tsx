@@ -7,13 +7,20 @@ import { DiffView } from '../diff/DiffView'
 import { applyIssues } from '../../../main/services/skills/output'
 import { applyHunks, diffHunks } from '../../../shared/diff'
 import { MODEL_ROLE_LABELS } from '../../../shared/types'
-import type { SkillMeta, SkillTarget } from '../../../shared/types'
+import type { SkillMeta, SkillPreview, SkillRunParams, SkillTarget, SkillWritesTo } from '../../../shared/types'
+
+const WRITES_LABEL: Record<SkillWritesTo, string> = {
+  chapter: '正文（逐处接受）',
+  outline: '章节计划 outline/',
+  bible: '故事框架 bible/',
+  state: '状态 state/'
+}
 
 /**
  * 右栏「Skill」面板：
  * - 选择 Skill 与模型预设，对「整章」或「选中文本」运行；
- * - 改写类（润色/去AI味）走差异视图逐处接受；检查类走结构化清单逐条接受；
- * - 应用前自动快照到 .history/（主进程 writeWithSnapshot）。
+ * - 运行前做门禁检查（如写正文要求先有章节计划）与「查看本次实际发送的上下文」；
+ * - 产物按 Skill 声明的 writes_to 写回：正文走差异视图、章节计划写 outline/、框架写 bible/、状态写 state/。
  */
 export function SkillRunPanel() {
   const skills = useSkillStore((s) => s.skills)
@@ -36,6 +43,7 @@ export function SkillRunPanel() {
   const selectionFrom = useProjectStore((s) => s.selectionFrom)
   const selectionTo = useProjectStore((s) => s.selectionTo)
   const applyContent = useProjectStore((s) => s.applyContent)
+  const refresh = useProjectStore((s) => s.refresh)
   const showToast = useUiStore((s) => s.showToast)
 
   const [skillId, setSkillId] = useState('')
@@ -43,6 +51,8 @@ export function SkillRunPanel() {
   const [target, setTarget] = useState<SkillTarget>('chapter')
   const [acceptedHunks, setAcceptedHunks] = useState<Set<string>>(new Set())
   const [acceptedIssues, setAcceptedIssues] = useState<Set<number>>(new Set())
+  const [gateMsg, setGateMsg] = useState<string | null>(null)
+  const [preview, setPreview] = useState<SkillPreview | null>(null)
 
   useEffect(() => {
     void load()
@@ -56,7 +66,6 @@ export function SkillRunPanel() {
     if (skill && !skillId) setSkillId(skill.id)
   }, [skill, skillId])
 
-  // 新结果到达时：改写默认全部接受；清单默认全部接受
   useEffect(() => {
     if (!result) return
     if (result.kind === 'issues') {
@@ -80,31 +89,59 @@ export function SkillRunPanel() {
     return m ? parseInt(m[1], 10) : undefined
   }, [currentPath])
 
-  const doRun = async () => {
+  const buildParams = (): SkillRunParams | null => {
     if (!skill) {
       showToast('请先选择一个 Skill')
-      return
+      return null
     }
     if (!currentPath) {
       showToast('请先打开一个章节')
-      return
+      return null
     }
     if (target === 'selection' && !selection.trim()) {
       showToast('未选中任何文本；请在编辑器中选中一段，或改选「整章」')
-      return
+      return null
     }
     if (!effectivePreset) {
       showToast('请先在设置中添加模型预设')
-      return
+      return null
     }
-    clear()
-    await run({
+    return {
       skillId: skill.id,
       presetId: effectivePreset,
       target,
       text: targetText,
       ...(chapterNo != null ? { chapterNo } : {})
-    })
+    }
+  }
+
+  const doRun = async () => {
+    const params = buildParams()
+    if (!params) return
+    setGateMsg(null)
+    setPreview(null)
+    // 门禁：写正文前必须有本章计划（与单测共用主进程同一实现）
+    if (skill?.requires.includes('chapter_plan') && chapterNo != null) {
+      const gate = await window.novelflow.chapter.checkGate(chapterNo)
+      if (!gate.ok) {
+        setGateMsg(gate.guidance ?? '缺少本章计划，已阻止写正文。')
+        showToast('被门禁拦下：缺少本章计划')
+        return
+      }
+    }
+    clear()
+    await run(params)
+  }
+
+  const doPreview = async () => {
+    const params = buildParams()
+    if (!params) return
+    try {
+      setGateMsg(null)
+      setPreview(await window.novelflow.skills.preview(params))
+    } catch (e) {
+      showToast(`预览失败：${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   /** 把「目标文本的新版本」写回完整文件（整章直接替换；选区按偏移量拼接）。 */
@@ -121,16 +158,49 @@ export function SkillRunPanel() {
     clear()
   }
 
+  const writesTo: SkillWritesTo = skill?.writesTo ?? 'chapter'
+
   const applyRewrite = async () => {
-    if (!result?.text) return
-    const newText = applyHunks(targetText, result.text, acceptedHunks)
-    await applyTarget(newText)
+    if (result?.text == null) return
+    await applyTarget(applyHunks(targetText, result.text, acceptedHunks))
   }
 
   const applyIssueFixes = async () => {
     if (!result?.issues) return
-    const newText = applyIssues(targetText, result.issues, acceptedIssues)
-    await applyTarget(newText)
+    await applyTarget(applyIssues(targetText, result.issues, acceptedIssues))
+  }
+
+  const applyOutline = async () => {
+    if (result?.text == null || chapterNo == null) {
+      showToast('需要打开一个正文章节以确定章号')
+      return
+    }
+    await window.novelflow.files.write(`outline/第${String(chapterNo).padStart(3, '0')}章.md`, result.text)
+    await refresh()
+    showToast(`章节计划已写入 outline/第${String(chapterNo).padStart(3, '0')}章.md`)
+    clear()
+  }
+
+  const applyBible = async () => {
+    if (result?.text == null) return
+    const res = await window.novelflow.framework.applyText(result.text)
+    await refresh()
+    showToast(`故事框架已写入 ${res.written.length} 个文件`)
+    if (res.unknownSections.length) showToast(`未识别的小节：${res.unknownSections.join('、')}`)
+    clear()
+  }
+
+  const applyState = async () => {
+    if (result?.raw == null) return
+    try {
+      const r = await window.novelflow.state.writeback(result.raw, chapterNo)
+      showToast(
+        `状态已回写：人物 +${r.charactersAdded}/~${r.charactersUpdated}，伏笔 +${r.planted}/回收 ${r.resolved}，事件 +${r.eventsAdded}`
+      )
+      clear()
+    } catch (e) {
+      showToast(`状态回写失败：${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   return (
@@ -143,6 +213,8 @@ export function SkillRunPanel() {
           value={skill?.id ?? ''}
           onChange={(e) => {
             setSkillId(e.target.value)
+            setGateMsg(null)
+            setPreview(null)
             clear()
           }}
           className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
@@ -172,7 +244,7 @@ export function SkillRunPanel() {
         </select>
         {skill?.recommendedModel && (
           <span className="mt-1 block text-xs text-slate-400">
-            推荐模型角色：{MODEL_ROLE_LABELS[skill.recommendedModel]}
+            推荐模型角色：{MODEL_ROLE_LABELS[skill.recommendedModel]} · 产物写回：{WRITES_LABEL[writesTo]}
           </span>
         )}
       </label>
@@ -188,23 +260,62 @@ export function SkillRunPanel() {
         </label>
       </div>
 
-      {!isChapter && <div className="text-xs text-amber-600">提示：Skill 结果写回正文章节，请先打开 chapters/ 下的章节。</div>}
+      {!isChapter && <div className="text-xs text-amber-600">提示：请先打开 chapters/ 下的章节；产物写回位置由 Skill 声明。</div>}
 
       <div className="flex gap-2">
         {!running ? (
-          <button
-            onClick={() => void doRun()}
-            disabled={!currentPath || skills.length === 0}
-            className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
-          >
-            运行 Skill
-          </button>
+          <>
+            <button
+              onClick={() => void doRun()}
+              disabled={!currentPath || skills.length === 0}
+              className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
+            >
+              运行 Skill
+            </button>
+            <button
+              onClick={() => void doPreview()}
+              disabled={!currentPath}
+              className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-40"
+              title="查看本次实际发送的上下文"
+            >
+              预览上下文
+            </button>
+          </>
         ) : (
           <button onClick={() => void cancel()} className="flex-1 rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-500">
             取消
           </button>
         )}
       </div>
+
+      {gateMsg && (
+        <div className="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+          <div className="font-medium">写正文门禁未通过</div>
+          <div className="mt-1">{gateMsg}</div>
+        </div>
+      )}
+
+      {preview && (
+        <div className="rounded border border-slate-300 bg-white p-2 text-xs">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-medium text-slate-700">本次实际发送的上下文</span>
+            <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600">
+              关闭
+            </button>
+          </div>
+          {preview.context && (
+            <div className="mb-1 text-slate-500">
+              预算 {preview.context.budget} tokens · 实际 {preview.context.totalTokens}
+              {preview.context.droppedKeys.length > 0 && ` · 已裁剪：${preview.context.droppedKeys.join('、')}`}
+              {preview.context.overBudget && ' · ⚠️ 仍超预算（前两项不裁剪）'}
+            </div>
+          )}
+          <div className="mb-1 text-slate-500">变量：{Object.keys(preview.variables).join('、') || '（无）'}</div>
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2 text-[11px] leading-relaxed text-slate-700">
+            {preview.prompt}
+          </pre>
+        </div>
+      )}
 
       {running && (
         <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-100 p-2 text-xs text-slate-500">
@@ -267,41 +378,68 @@ export function SkillRunPanel() {
 
       {result && result.kind !== 'issues' && result.text != null && (
         <div className="flex flex-col gap-2">
-          <DiffView
-            before={targetText}
-            after={result.text}
-            accepted={acceptedHunks}
-            onToggle={(id) =>
-              setAcceptedHunks((s) => {
-                const n = new Set(s)
-                if (n.has(id)) n.delete(id)
-                else n.add(id)
-                return n
-              })
-            }
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => void applyRewrite()}
-              disabled={acceptedHunks.size === 0}
-              className="flex-1 rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500 disabled:opacity-40"
-            >
-              应用 {acceptedHunks.size} 处改动
+          {writesTo === 'chapter' && (
+            <>
+              <DiffView
+                before={targetText}
+                after={result.text}
+                accepted={acceptedHunks}
+                onToggle={(id) =>
+                  setAcceptedHunks((s) => {
+                    const n = new Set(s)
+                    if (n.has(id)) n.delete(id)
+                    else n.add(id)
+                    return n
+                  })
+                }
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => void applyRewrite()}
+                  disabled={acceptedHunks.size === 0}
+                  className="flex-1 rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500 disabled:opacity-40"
+                >
+                  应用 {acceptedHunks.size} 处改动
+                </button>
+                <button
+                  onClick={() =>
+                    setAcceptedHunks(
+                      new Set(diffHunks(targetText, result.text ?? '').filter((h) => h.kind === 'change').map((h) => h.id))
+                    )
+                  }
+                  className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+                >
+                  全选
+                </button>
+              </div>
+            </>
+          )}
+          {writesTo === 'outline' && (
+            <button onClick={() => void applyOutline()} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500">
+              写入章节计划 outline/第{chapterNo != null ? String(chapterNo).padStart(3, '0') : '???'}章.md
             </button>
-            <button
-              onClick={() => setAcceptedHunks(new Set(diffHunks(targetText, result.text ?? '').filter((h) => h.kind === 'change').map((h) => h.id)))}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
-            >
-              全选
+          )}
+          {writesTo === 'bible' && (
+            <button onClick={() => void applyBible()} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500">
+              写入故事框架 bible/
             </button>
-          </div>
+          )}
+          {writesTo === 'state' && (
+            <button onClick={() => void applyState()} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500">
+              写入状态 state/*.json
+            </button>
+          )}
+          <details className="text-xs text-slate-500">
+            <summary className="cursor-pointer">查看模型原始输出</summary>
+            <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2">{result.text}</pre>
+          </details>
         </div>
       )}
 
       <div className="mt-1 rounded bg-slate-100 p-2 text-xs leading-relaxed text-slate-500">
-        说明：检查类 Skill 只输出问题清单、不直接改全文；改写类 Skill 的结果可逐处接受/拒绝。
-        应用前会自动把原内容快照到项目 <code className="mx-1 rounded bg-slate-200 px-1">.history/</code>。
-        提示词全部来自 <code className="mx-1 rounded bg-slate-200 px-1">skills/</code> 目录，可在「Skill 库」中编辑。
+        说明：检查类 Skill 只输出问题清单、不直接改全文；改写类可逐处接受/拒绝。应用前自动把原内容快照到项目
+        <code className="mx-1 rounded bg-slate-200 px-1">.history/</code>。提示词全部来自
+        <code className="mx-1 rounded bg-slate-200 px-1">skills/</code> 目录，可在「Skill 库」中编辑。
       </div>
       {lastParams && <div className="text-xs text-slate-400">上次目标：{lastParams.target === 'selection' ? '选中文本' : '整章'}</div>}
     </div>

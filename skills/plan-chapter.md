@@ -5,6 +5,7 @@ description: 依据故事框架与上一章结尾，规划下一章的章节计�
 version: 1
 recommended_model: planner
 output: text
+writes_to: outline
 inputs:
   - chapter_no
   - bible.03-主线与卷纲

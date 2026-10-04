@@ -12,6 +12,8 @@ inputs:
   - character_profiles
   - current_state
   - previous_tail
+requires:
+  - chapter_plan
 ---
 
 # 角色

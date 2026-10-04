@@ -140,6 +140,7 @@ describe('SKILL.md 解析与序列化', () => {
       recommendedModel: 'writer',
       output: 'rewrite',
       inputs: ['chapter_text', 'bible.文风规范'],
+      requires: [],
       body: '# 提示\n\n处理 {{chapter_text}}，参照 {{bible.文风规范}}。\n',
       builtin: false,
       createdAt: '2026-01-01T00:00:00.000Z',
