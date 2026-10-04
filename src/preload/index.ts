@@ -73,6 +73,23 @@ const api: Api = {
   chapter: {
     checkGate: (chapterNo) => ipcRenderer.invoke('chapter:checkGate', chapterNo)
   },
+  workflow: {
+    list: () => ipcRenderer.invoke('workflow:list'),
+    save: (workflow) => ipcRenderer.invoke('workflow:save', workflow),
+    remove: (id) => ipcRenderer.invoke('workflow:remove', id),
+    templates: () => ipcRenderer.invoke('workflow:templates'),
+    createFromTemplate: (templateId) => ipcRenderer.invoke('workflow:createFromTemplate', templateId)
+  },
+  runs: {
+    list: () => ipcRenderer.invoke('runs:list'),
+    unfinished: () => ipcRenderer.invoke('runs:unfinished'),
+    get: (id) => ipcRenderer.invoke('runs:get', id),
+    start: (workflowId, opts) => ipcRenderer.invoke('runs:start', workflowId, opts),
+    resume: (id) => ipcRenderer.invoke('runs:resume', id),
+    confirm: (id, nodeId, editedOutput) => ipcRenderer.invoke('runs:confirm', id, nodeId, editedOutput),
+    retry: (id, nodeId) => ipcRenderer.invoke('runs:retry', id, nodeId),
+    abort: (id) => ipcRenderer.invoke('runs:abort', id)
+  },
   app: {
     version: () => ipcRenderer.invoke('app:version')
   }

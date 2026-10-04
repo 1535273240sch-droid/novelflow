@@ -264,6 +264,74 @@ export interface ChapterGateResult {
   guidance?: string
 }
 
+// ---------------- M4：工作流 ----------------
+
+export type WorkflowInputSource = 'previous' | 'file' | 'manual'
+export type WorkflowOutputSink = 'next' | 'file' | 'display'
+
+/** 工作流节点四要素：选 Skill → 选模型 → 绑定输入 → 输出去向 */
+export interface WorkflowNode {
+  id: string
+  name: string
+  skillId: string
+  /** 模型预设；缺省时按 Skill 的 recommended_model 走角色映射 */
+  presetId?: string
+  input: {
+    source: WorkflowInputSource
+    /** source=file 时的项目相对路径 */
+    relPath?: string
+    /** source=manual 时的固定文本 */
+    text?: string
+  }
+  sink: {
+    kind: WorkflowOutputSink
+    /** sink.kind=file 时的项目相对路径 */
+    relPath?: string
+  }
+  /** 人工确认点：运行到此节点后暂停 */
+  confirm?: boolean
+}
+
+export interface Workflow {
+  id: string
+  name: string
+  nodes: WorkflowNode[]
+  builtin: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type WorkflowNodeStatus = 'pending' | 'running' | 'done' | 'failed' | 'awaiting_confirm'
+
+export interface WorkflowNodeState {
+  nodeId: string
+  name: string
+  skillId: string
+  status: WorkflowNodeStatus
+  /** 流向下一节点的文本（issues 类检查节点此处为原文，保持文本流不被检查结果污染） */
+  output?: string
+  /** 模型原始输出（供查看，如检查清单 JSON） */
+  raw?: string
+  kind?: SkillOutputKind
+  writesTo?: SkillWritesTo
+  error?: string
+  startedAt?: string
+  finishedAt?: string
+}
+
+export type WorkflowRunStatus = 'running' | 'paused' | 'failed' | 'completed' | 'aborted'
+
+export interface WorkflowRun {
+  id: string
+  workflowId: string
+  workflowName: string
+  chapterNo?: number
+  status: WorkflowRunStatus
+  nodes: WorkflowNodeState[]
+  createdAt: string
+  updatedAt: string
+}
+
 /** 测试连接结果 */
 export interface TestConnectionResult {
   ok: boolean
@@ -343,6 +411,27 @@ export interface Api {
   chapter: {
     /** 写正文门禁：本章计划是否存在（界面与单测共用同一实现） */
     checkGate(chapterNo: number): Promise<ChapterGateResult>
+  }
+  workflow: {
+    list(): Promise<Workflow[]>
+    save(workflow: Workflow): Promise<Workflow>
+    remove(id: string): Promise<void>
+    /** 三个内置模板（开新书 / 写一章 / 精修） */
+    templates(): Promise<Workflow[]>
+    createFromTemplate(templateId: string): Promise<Workflow>
+  }
+  runs: {
+    list(): Promise<WorkflowRun[]>
+    /** 上次未完成的运行（供重启时提示继续） */
+    unfinished(): Promise<WorkflowRun | null>
+    get(id: string): Promise<WorkflowRun | null>
+    start(workflowId: string, opts?: { chapterNo?: number; presetId?: string }): Promise<WorkflowRun>
+    resume(id: string): Promise<WorkflowRun>
+    /** 人工确认点：查看/修改中间结果后继续 */
+    confirm(id: string, nodeId: string, editedOutput?: string): Promise<WorkflowRun>
+    /** 从失败/指定节点重试 */
+    retry(id: string, nodeId: string): Promise<WorkflowRun>
+    abort(id: string): Promise<WorkflowRun>
   }
   history: {
     /** 列出某文件的全部快照（不传则列全部） */

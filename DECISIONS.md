@@ -136,6 +136,22 @@
 - 理由：避免在渲染层用 `if (skillId === 'plan-chapter')` 这种硬编码分支；新增 Skill 只要声明 `writes_to` 就能被界面正确处理。
 - `generate-story-framework` 另有独立问答页（FrameworkPage），因为它需要结构化问答输入，不适合通用的「对选中文本运行」面板。
 
+## 27. SQLite 用 Node 内置 `node:sqlite`，不引 better-sqlite3（对说明书的一处偏离，如实记录）
+
+- 说明书技术栈写的是 better-sqlite3。实测其原生模块需要针对 Electron 的 Node ABI 重新编译（node-gyp + MSVC/python），在真机上是明显的部署风险；而 `node:sqlite`（Node 22.5+ / Electron 36 均内置）就是同一个 SQLite，**零依赖、零原生编译**，`runs` + `run_nodes` 两张表的能力完全一致。
+- 通过 `createRequire(process.execPath)` 取模块，CJS（esbuild 打包的主进程）与 ESM（vitest）下都能用。
+- 代价：`node:sqlite` 目前标记为 experimental，启动时会打印一条 ExperimentalWarning；接口在 Node 大版本间可能变动，已在测试中固定行为。
+
+## 28. 「强杀」在单测里以「节点状态停在 running」模拟
+
+- 真进程强杀无法在 vitest 内做；崩溃恢复用例的做法是：把节点状态写成 `running` 后直接关闭连接（等价于进程消失、无任何收尾），再用同一个库文件新开 `RunStore` + 新 `WorkflowEngine` resume。
+- 断言了三件事：已完成节点不重跑、`running` 节点被重跑、文件无 `.tmp` 残留且内容正确。这覆盖了「断点续跑 + 文件不损坏」的实质，但不是对真实 kill -9 的证明，如实标注。
+
+## 29. 检查类节点不改变文本流；确认点延迟落盘
+
+- issues 类 Skill（错别字/一致性）的输出只作为 `raw` 展示，`output` 仍为原文，保证「读计划→写作→检查→润色」链路中检查不会把 JSON 当成下一节点的输入。
+- 确认点在**确认时**才写盘（执行完仅暂停），这样「查看/修改中间结果再继续」的修改才真正生效，而不是先写了一份再被覆盖。
+
 ## 捷径清单（development 诚信模式）
 
 1. **设置存 JSON 而非 SQLite**：运行记录/索引类需求 M4 才上 better-sqlite3；m1 的 settings.json 原子写足够。

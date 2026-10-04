@@ -10,6 +10,9 @@ import { readSnapshot, snapshotFile, snapshotRelPath, listSnapshots } from '../s
 import { applyFramework, parseFramework } from '../services/framework/apply'
 import { applyStateWriteback, parseWriteback } from '../services/state/writeback'
 import { requireChapterPlan, ChapterGateError } from '../services/context/gates'
+import { WorkflowRegistry } from '../services/workflow/registry'
+import { RunStore, runStoreFor } from '../services/workflow/store'
+import { WorkflowEngine, type NodeExecutor, type EngineDeps } from '../services/workflow/engine'
 import type { PresetCreds, ChatMessage } from '../services/llm/adapters'
 import type {
   ChatStartParams,
@@ -21,7 +24,9 @@ import type {
   SkillEvent,
   SkillPreview,
   SkillRunParams,
-  StateWritebackResult
+  StateWritebackResult,
+  Workflow,
+  WorkflowRun
 } from '../../shared/types'
 
 export interface IpcContext {
@@ -29,6 +34,7 @@ export interface IpcContext {
   settings: SettingsStore
   llm: LlmService
   skills: SkillRegistry
+  workflows: WorkflowRegistry
   getWindow: () => import('electron').BrowserWindow | null
 }
 
@@ -386,6 +392,80 @@ export function registerIpc(ctx: IpcContext, host: IpcHost): void {
       ctx.logger.info(`已还原快照：${relPath}`)
     })
   )
+
+  // ---------- 工作流与运行（M4） ----------
+  let runStore: { root: string; store: RunStore } | null = null
+  const getRunStore = async (): Promise<RunStore> => {
+    const root = requireProject().root
+    if (runStore && runStore.root === root) return runStore.store
+    runStore?.store.close()
+    runStore = { root, store: await runStoreFor(root) }
+    return runStore.store
+  }
+
+  const engineFor = async (): Promise<WorkflowEngine> => {
+    const store = requireProject()
+    const db = await getRunStore()
+    const executor: NodeExecutor = async ({ node, inputText, chapterNo, presetId }) => {
+      const runner = new SkillRunner(ctx.skills, store.root)
+      const prep = await runner.prepare({
+        skillId: node.skillId,
+        presetId,
+        target: 'chapter',
+        text: inputText,
+        ...(chapterNo != null ? { chapterNo } : {})
+      })
+      const creds = await resolveSkillCreds(prep.skill, presetId)
+      const res = await ctx.llm.chat({ preset: creds, messages: prep.messages })
+      const final = runner.finalize(prep, res.text)
+      return {
+        output: final.text ?? '',
+        raw: final.raw,
+        kind: prep.kind,
+        writesTo: prep.skill.writesTo ?? 'chapter'
+      }
+    }
+    const deps: EngineDeps = {
+      readFile: (rel) => store.readRel(rel),
+      writeFile: async (rel, content) => {
+        const prev = await store.readRel(rel).catch(() => null)
+        if (prev !== null) await snapshotFile(store.root, rel, prev)
+        await store.writeRel(rel, content)
+      },
+      applyFramework: async (text) => applyFramework(store.root, parseFramework(text)),
+      applyState: async (raw, chapterNo) =>
+        applyStateWriteback(store.root, parseWriteback(raw), chapterNo)
+    }
+    return new WorkflowEngine(db, ctx.workflows, executor, deps)
+  }
+
+  ipcMain.handle('workflow:list', () => wrap(() => ctx.workflows.list()))
+  ipcMain.handle('workflow:templates', () => wrap(() => ctx.workflows.templates()))
+  ipcMain.handle('workflow:save', (_e, w: Workflow) => wrap(() => ctx.workflows.save(w)))
+  ipcMain.handle('workflow:remove', (_e, id: string) => wrap(() => ctx.workflows.remove(id)))
+  ipcMain.handle('workflow:createFromTemplate', (_e, id: string) => wrap(() => ctx.workflows.createFromTemplate(id)))
+
+  ipcMain.handle('runs:list', () => wrap(() => getRunStore().then((s) => s.listRuns())))
+  ipcMain.handle('runs:unfinished', () => wrap(() => getRunStore().then((s) => s.unfinished())))
+  ipcMain.handle('runs:get', (_e, id: string) => wrap(() => getRunStore().then((s) => s.getRun(id))))
+  ipcMain.handle('runs:start', (_e, workflowId: string, opts?: { chapterNo?: number; presetId?: string }) =>
+    wrap(async (): Promise<WorkflowRun> => {
+      const workflow = await ctx.workflows.get(workflowId)
+      if (!workflow) throw new Error(`工作流不存在：${workflowId}`)
+      const engine = await engineFor()
+      const run = await engine.start(workflow, opts ?? {})
+      ctx.logger.info(`工作流已启动：${workflow.name}（状态 ${run.status}）`)
+      return run
+    })
+  )
+  ipcMain.handle('runs:resume', (_e, id: string) => wrap(() => engineFor().then((e) => e.resume(id))))
+  ipcMain.handle('runs:confirm', (_e, id: string, nodeId: string, editedOutput?: string) =>
+    wrap(() => engineFor().then((e) => e.confirm(id, nodeId, editedOutput)))
+  )
+  ipcMain.handle('runs:retry', (_e, id: string, nodeId: string) =>
+    wrap(() => engineFor().then((e) => e.retry(id, nodeId)))
+  )
+  ipcMain.handle('runs:abort', (_e, id: string) => wrap(() => engineFor().then((e) => e.abort(id))))
 
   // ---------- 剪贴板 / 应用 ----------
   ipcMain.handle('clipboard:write', (_e, text: string) => wrap(() => clipboard.writeText(text)))

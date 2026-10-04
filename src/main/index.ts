@@ -6,6 +6,7 @@ import { SettingsStore } from './services/storage/settings-store'
 import { createSafeStorageBox } from './services/secrets/safe-storage'
 import { LlmService } from './services/llm/service'
 import { SkillRegistry } from './services/skills/registry'
+import { WorkflowRegistry } from './services/workflow/registry'
 import { registerIpc, type IpcContext } from './ipc/register'
 import type { ProjectInfo } from '../shared/types'
 
@@ -80,7 +81,8 @@ async function initContext(): Promise<IpcContext> {
   const skills = new SkillRegistry(resolveBuiltinSkillsDir(), path.join(userData, 'skills'))
   await skills.ensureSeeded()
   logger.info(`Skill 库就绪：${(await skills.list()).length} 个`)
-  return { logger, settings, llm, skills, getWindow: () => mainWindow }
+  const workflows = new WorkflowRegistry(userData)
+  return { logger, settings, llm, skills, workflows, getWindow: () => mainWindow }
 }
 
 async function run(): Promise<void> {
