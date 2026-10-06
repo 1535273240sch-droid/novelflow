@@ -203,11 +203,24 @@ export function SkillRunPanel() {
     }
   }
 
-  return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
-      <div className="text-sm font-semibold text-slate-700">Skill 运行</div>
+  const targetOption = (value: SkillTarget, label: string) => (
+    <label
+      className={`flex flex-1 cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+        target === value
+          ? 'border-slate-400 bg-slate-100 text-slate-800'
+          : 'border-slate-300 text-slate-500 hover:bg-slate-100/60'
+      }`}
+    >
+      <input type="radio" checked={target === value} onChange={() => setTarget(value)} className="shrink-0" />
+      {label}
+    </label>
+  )
 
-      <label className="text-xs text-slate-500">
+  return (
+    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3.5">
+      <div className="text-sm font-semibold text-slate-800">Skill 运行</div>
+
+      <label className="nf-label">
         Skill
         <select
           value={skill?.id ?? ''}
@@ -217,23 +230,24 @@ export function SkillRunPanel() {
             setPreview(null)
             clear()
           }}
-          className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          className="nf-select mt-1"
         >
           {skills.length === 0 && <option value="">（暂无 Skill）</option>}
           {skills.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name}（v{s.version}{s.builtin ? ' · 内置' : ''}）
+              {s.name}（v{s.version}
+              {s.builtin ? ' · 内置' : ''}）
             </option>
           ))}
         </select>
       </label>
 
-      <label className="text-xs text-slate-500">
+      <label className="nf-label">
         模型预设
         <select
           value={effectivePreset}
           onChange={(e) => setPresetId(e.target.value)}
-          className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          className="nf-select mt-1"
         >
           {presets.length === 0 && <option value="">（请到设置页添加）</option>}
           {presets.map((p) => (
@@ -249,18 +263,16 @@ export function SkillRunPanel() {
         )}
       </label>
 
-      <div className="flex gap-2 text-xs">
-        <label className="flex flex-1 items-center gap-1 rounded border border-slate-300 px-2 py-1">
-          <input type="radio" checked={target === 'chapter'} onChange={() => setTarget('chapter')} />
-          整章
-        </label>
-        <label className="flex flex-1 items-center gap-1 rounded border border-slate-300 px-2 py-1">
-          <input type="radio" checked={target === 'selection'} onChange={() => setTarget('selection')} />
-          选中文本{selection ? `（${selection.length} 字）` : '（未选中）'}
-        </label>
+      <div className="flex gap-2">
+        {targetOption('chapter', '整章')}
+        {targetOption('selection', `选中文本${selection ? `（${selection.length} 字）` : '（未选中）'}`)}
       </div>
 
-      {!isChapter && <div className="text-xs text-amber-600">提示：请先打开 chapters/ 下的章节；产物写回位置由 Skill 声明。</div>}
+      {!isChapter && (
+        <div className="nf-callout nf-callout-warn text-xs">
+          请先打开 chapters/ 下的章节；产物写回位置由 Skill 声明。
+        </div>
+      )}
 
       <div className="flex gap-2">
         {!running ? (
@@ -268,76 +280,79 @@ export function SkillRunPanel() {
             <button
               onClick={() => void doRun()}
               disabled={!currentPath || skills.length === 0}
-              className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
+              className="nf-btn nf-btn-primary flex-1"
             >
               运行 Skill
             </button>
             <button
               onClick={() => void doPreview()}
               disabled={!currentPath}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-40"
+              className="nf-btn nf-btn-ghost"
               title="查看本次实际发送的上下文"
             >
               预览上下文
             </button>
           </>
         ) : (
-          <button onClick={() => void cancel()} className="flex-1 rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-500">
+          <button onClick={() => void cancel()} className="nf-btn nf-btn-danger flex-1">
             取消
           </button>
         )}
       </div>
 
       {gateMsg && (
-        <div className="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+        <div className="nf-callout nf-callout-warn text-xs">
           <div className="font-medium">写正文门禁未通过</div>
           <div className="mt-1">{gateMsg}</div>
         </div>
       )}
 
       {preview && (
-        <div className="rounded border border-slate-300 bg-white p-2 text-xs">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="font-medium text-slate-700">本次实际发送的上下文</span>
+        <div className="nf-card p-2.5 text-xs">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="font-medium text-slate-800">本次实际发送的上下文</span>
             <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600">
               关闭
             </button>
           </div>
           {preview.context && (
-            <div className="mb-1 text-slate-500">
+            <div className="mb-1.5 text-slate-500">
               预算 {preview.context.budget} tokens · 实际 {preview.context.totalTokens}
               {preview.context.droppedKeys.length > 0 && ` · 已裁剪：${preview.context.droppedKeys.join('、')}`}
               {preview.context.overBudget && ' · ⚠️ 仍超预算（前两项不裁剪）'}
             </div>
           )}
-          <div className="mb-1 text-slate-500">变量：{Object.keys(preview.variables).join('、') || '（无）'}</div>
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2 text-[11px] leading-relaxed text-slate-700">
+          <div className="mb-1.5 text-slate-500">变量：{Object.keys(preview.variables).join('、') || '（无）'}</div>
+          <pre className="nf-inset max-h-64 overflow-auto whitespace-pre-wrap p-2 text-[11px] leading-relaxed text-slate-700">
             {preview.prompt}
           </pre>
         </div>
       )}
 
       {running && (
-        <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-100 p-2 text-xs text-slate-500">
+        <div className="nf-inset max-h-40 overflow-y-auto whitespace-pre-wrap p-2 text-xs leading-relaxed text-slate-600">
           {streamText || '生成中…'}
         </div>
       )}
 
-      {error && <div className="rounded bg-red-50 p-2 text-xs text-red-700">{error}</div>}
+      {error && <div className="nf-callout nf-callout-error text-xs">{error}</div>}
 
       {result && result.kind === 'issues' && (
         <div className="flex flex-col gap-2">
           {result.degraded && (
-            <div className="rounded bg-amber-50 p-2 text-xs text-amber-700">{result.degradedReason}</div>
+            <div className="nf-callout nf-callout-warn text-xs">{result.degradedReason}</div>
           )}
           {result.issues && result.issues.length > 0 ? (
             <>
               <div className="text-xs text-slate-500">共 {result.issues.length} 处问题，逐条勾选后应用。</div>
               {result.issues.map((it, i) => (
-                <label key={i} className="flex items-start gap-1 rounded border border-slate-200 p-2 text-xs">
+                <label
+                  key={i}
+                  className="flex cursor-pointer items-start gap-2 rounded-md border border-slate-200 p-2 text-xs transition-colors hover:bg-slate-50"
+                >
                   <input
                     type="checkbox"
-                    className="mt-0.5"
+                    className="mt-0.5 shrink-0"
                     checked={acceptedIssues.has(i)}
                     onChange={() =>
                       setAcceptedIssues((s) => {
@@ -348,8 +363,8 @@ export function SkillRunPanel() {
                       })
                     }
                   />
-                  <span className="min-w-0">
-                    <span className="text-red-700 line-through">{it.original}</span>
+                  <span className="min-w-0 leading-relaxed">
+                    <span className="text-red-600 line-through">{it.original}</span>
                     <span className="mx-1 text-slate-400">→</span>
                     <span className="text-green-700">{it.suggestion}</span>
                     {it.reason && <span className="ml-1 text-slate-400">（{it.reason}）</span>}
@@ -360,16 +375,16 @@ export function SkillRunPanel() {
               <button
                 onClick={() => void applyIssueFixes()}
                 disabled={acceptedIssues.size === 0}
-                className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500 disabled:opacity-40"
+                className="nf-btn nf-btn-primary"
               >
                 应用选中 {acceptedIssues.size} 处修改
               </button>
             </>
           ) : (
-            !result.degraded && <div className="text-xs text-slate-500">未发现问题。</div>
+            !result.degraded && <div className="nf-callout nf-callout-success text-xs">未发现问题。</div>
           )}
           {result.degraded && (
-            <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2 text-xs text-slate-600">
+            <pre className="nf-inset max-h-60 overflow-auto whitespace-pre-wrap p-2 text-xs text-slate-600">
               {result.raw}
             </pre>
           )}
@@ -397,7 +412,7 @@ export function SkillRunPanel() {
                 <button
                   onClick={() => void applyRewrite()}
                   disabled={acceptedHunks.size === 0}
-                  className="flex-1 rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500 disabled:opacity-40"
+                  className="nf-btn nf-btn-primary flex-1"
                 >
                   应用 {acceptedHunks.size} 处改动
                 </button>
@@ -407,7 +422,7 @@ export function SkillRunPanel() {
                       new Set(diffHunks(targetText, result.text ?? '').filter((h) => h.kind === 'change').map((h) => h.id))
                     )
                   }
-                  className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+                  className="nf-btn nf-btn-ghost"
                 >
                   全选
                 </button>
@@ -415,33 +430,37 @@ export function SkillRunPanel() {
             </>
           )}
           {writesTo === 'outline' && (
-            <button onClick={() => void applyOutline()} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500">
+            <button onClick={() => void applyOutline()} className="nf-btn nf-btn-primary">
               写入章节计划 outline/第{chapterNo != null ? String(chapterNo).padStart(3, '0') : '???'}章.md
             </button>
           )}
           {writesTo === 'bible' && (
-            <button onClick={() => void applyBible()} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500">
+            <button onClick={() => void applyBible()} className="nf-btn nf-btn-primary">
               写入故事框架 bible/
             </button>
           )}
           {writesTo === 'state' && (
-            <button onClick={() => void applyState()} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-500">
+            <button onClick={() => void applyState()} className="nf-btn nf-btn-primary">
               写入状态 state/*.json
             </button>
           )}
           <details className="text-xs text-slate-500">
-            <summary className="cursor-pointer">查看模型原始输出</summary>
-            <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2">{result.text}</pre>
+            <summary className="cursor-pointer select-none hover:text-slate-700">查看模型原始输出</summary>
+            <pre className="nf-inset mt-1 max-h-60 overflow-auto whitespace-pre-wrap p-2 text-slate-600">
+              {result.text}
+            </pre>
           </details>
         </div>
       )}
 
-      <div className="mt-1 rounded bg-slate-100 p-2 text-xs leading-relaxed text-slate-500">
-        说明：检查类 Skill 只输出问题清单、不直接改全文；改写类可逐处接受/拒绝。应用前自动把原内容快照到项目
+      <div className="nf-callout nf-callout-info text-xs">
+        检查类 Skill 只输出问题清单、不直接改全文；改写类可逐处接受/拒绝。应用前自动把原内容快照到项目
         <code className="mx-1 rounded bg-slate-200 px-1">.history/</code>。提示词全部来自
         <code className="mx-1 rounded bg-slate-200 px-1">skills/</code> 目录，可在「Skill 库」中编辑。
       </div>
-      {lastParams && <div className="text-xs text-slate-400">上次目标：{lastParams.target === 'selection' ? '选中文本' : '整章'}</div>}
+      {lastParams && (
+        <div className="text-xs text-slate-400">上次目标：{lastParams.target === 'selection' ? '选中文本' : '整章'}</div>
+      )}
     </div>
   )
 }

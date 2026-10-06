@@ -10,7 +10,8 @@ export function ToastContainer() {
         <button
           key={t.id}
           onClick={() => dismiss(t.id)}
-          className="pointer-events-auto rounded-lg bg-slate-900/90 px-4 py-2 text-sm text-white shadow-lg transition-opacity"
+          className="nf-toast pointer-events-auto rounded-lg bg-slate-900/95 px-4 py-2.5 text-sm text-white shadow-lg ring-1 ring-white/10"
+          title="点击关闭"
         >
           {t.text}
         </button>

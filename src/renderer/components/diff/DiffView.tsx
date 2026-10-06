@@ -23,7 +23,7 @@ export function DiffView({ before, after, accepted, onToggle }: Props) {
   const changes = hunks.filter((h) => h.kind === 'change')
 
   if (changes.length === 0) {
-    return <div className="rounded bg-slate-100 p-3 text-sm text-slate-500">结果与原文一致，没有可应用的改动。</div>
+    return <div className="nf-callout nf-callout-info text-sm">结果与原文一致，没有可应用的改动。</div>
   }
 
   return (
@@ -33,7 +33,7 @@ export function DiffView({ before, after, accepted, onToggle }: Props) {
         if (h.kind === 'equal') {
           const { lines, truncated } = visibleEqualLines(h)
           return (
-            <div key={h.id} className="rounded border border-slate-100 bg-slate-50/60 px-2 py-1">
+            <div key={h.id} className="nf-inset px-2 py-1">
               {lines.map((ln, i) => (
                 <div key={i} className="truncate font-mono text-xs text-slate-400">
                   {ln.text || '\u00a0'}
@@ -47,15 +47,17 @@ export function DiffView({ before, after, accepted, onToggle }: Props) {
         return (
           <div
             key={h.id}
-            className={`overflow-hidden rounded border ${isAccepted ? 'border-green-300' : 'border-slate-200'}`}
+            className={`overflow-hidden rounded-md border transition-colors ${
+              isAccepted ? 'border-green-300' : 'border-slate-200'
+            }`}
           >
             <div className="flex items-center justify-between bg-slate-100 px-2 py-1">
-              <span className="text-xs text-slate-500">{isAccepted ? '已接受' : '已拒绝'}</span>
+              <span className={`text-xs ${isAccepted ? 'text-green-700' : 'text-slate-500'}`}>
+                {isAccepted ? '✓ 已接受' : '未接受'}
+              </span>
               <button
                 onClick={() => onToggle(h.id)}
-                className={`rounded px-2 py-0.5 text-xs ${
-                  isAccepted ? 'bg-white text-slate-600 hover:bg-slate-50' : 'bg-green-600 text-white hover:bg-green-500'
-                }`}
+                className={`nf-btn nf-btn-sm ${isAccepted ? 'nf-btn-ghost' : 'nf-btn-primary'}`}
               >
                 {isAccepted ? '改为拒绝' : '接受此处'}
               </button>

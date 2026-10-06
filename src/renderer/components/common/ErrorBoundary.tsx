@@ -24,15 +24,13 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
-          <div className="text-lg font-semibold text-red-600">界面出现异常</div>
-          <pre className="max-w-xl overflow-auto rounded bg-slate-100 p-3 text-xs text-slate-700">
+        <div className="flex h-full flex-col items-center justify-center gap-5 p-8">
+          <span className="nf-seal h-12 w-12 text-xl">误</span>
+          <div className="text-lg font-semibold text-slate-900">界面出现异常</div>
+          <pre className="nf-inset max-w-xl overflow-auto p-3 text-xs text-slate-600">
             {this.state.error.message}
           </pre>
-          <button
-            className="rounded bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
-            onClick={() => this.setState({ error: null })}
-          >
+          <button className="nf-btn nf-btn-primary" onClick={() => this.setState({ error: null })}>
             重新加载界面
           </button>
         </div>

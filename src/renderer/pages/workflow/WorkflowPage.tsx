@@ -29,6 +29,14 @@ const NODE_STATUS_LABEL: Record<string, string> = {
   awaiting_confirm: '等待确认'
 }
 
+const NODE_STATUS_CLS: Record<string, string> = {
+  done: 'border-green-200 bg-green-50 text-green-700',
+  failed: 'border-red-200 bg-red-50 text-red-600',
+  awaiting_confirm: 'border-amber-200 bg-amber-50 text-amber-800',
+  running: 'border-blue-200 bg-blue-50 text-blue-700',
+  pending: 'bg-slate-100 text-slate-500'
+}
+
 /**
  * 工作流页（M4）：
  * - 工作流 = 有序节点卡片列表，可拖拽排序；节点四要素（Skill / 模型 / 输入绑定 / 输出去向）可编辑；
@@ -108,23 +116,23 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
     showToast('工作流已保存')
   }
 
-  const inputCls =
-    'w-full rounded border border-slate-300 px-2 py-1 text-sm focus:border-slate-500 focus:outline-none'
-
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-6xl px-6 py-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold">工作流</h1>
-          <button onClick={onBack} className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100">
-            返回编辑器
-          </button>
+      <div className="mx-auto max-w-6xl px-6 py-7">
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <h1 className="nf-page-title">工作流</h1>
+            <button onClick={onBack} className="nf-btn nf-btn-sm nf-btn-ghost">
+              返回编辑器
+            </button>
+          </div>
+          <hr className="nf-brush-rule mt-3" />
         </div>
 
-        {!project && <div className="mb-4 rounded bg-amber-50 p-3 text-sm text-amber-700">请先新建或打开一个项目。</div>}
+        {!project && <div className="mb-4 nf-callout nf-callout-warn">请先新建或打开一个项目。</div>}
 
         {unfinished && (!run || run.id !== unfinished.id) && (
-          <div className="mb-4 flex items-center justify-between rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 nf-callout nf-callout-warn">
             <span>
               检测到上次未完成的运行：{unfinished.workflowName}（{statusLabel(unfinished.status)}）
             </span>
@@ -133,7 +141,7 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                 await resume(unfinished.id)
                 setUnfinished(null)
               }}
-              className="rounded bg-amber-600 px-3 py-1 text-white hover:bg-amber-500"
+              className="nf-btn nf-btn-sm nf-btn-primary"
             >
               继续上次未完成的运行
             </button>
@@ -142,8 +150,8 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* 工作流列表 */}
-          <aside className="rounded-lg border border-slate-200 bg-white p-3">
-            <div className="mb-2 text-sm font-semibold text-slate-700">工作流库</div>
+          <aside className="nf-card h-fit p-3.5">
+            <div className="mb-2 text-sm font-semibold text-slate-800">工作流库</div>
             <div className="flex flex-col gap-1">
               {workflows.map((w) => (
                 <button
@@ -152,8 +160,8 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                     setDraft(clone(w))
                     setExpanded(null)
                   }}
-                  className={`truncate rounded px-2 py-1.5 text-left text-sm ${
-                    draft?.id === w.id ? 'bg-slate-800 text-white' : 'hover:bg-slate-100'
+                  className={`truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                    draft?.id === w.id ? 'bg-slate-800 text-white' : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   {w.name}
@@ -161,8 +169,8 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                 </button>
               ))}
             </div>
-            <div className="mt-3 border-t border-slate-200 pt-3">
-              <div className="mb-1 text-xs text-slate-500">从模板新建</div>
+            <div className="mt-3 border-t border-slate-200/80 pt-3">
+              <div className="nf-label mb-1.5">从模板新建</div>
               {workflows
                 .filter((w) => w.builtin)
                 .map((t) => (
@@ -173,20 +181,20 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                       setDraft(clone(w))
                       showToast(`已从模板创建「${w.name}」`)
                     }}
-                    className="mb-1 block w-full rounded border border-dashed border-slate-300 px-2 py-1 text-left text-xs text-slate-600 hover:bg-slate-50"
+                    className="mb-1 block w-full rounded-md border border-dashed border-slate-300 px-2 py-1 text-left text-xs text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-800"
                   >
                     + {t.name}
                   </button>
                 ))}
             </div>
             {runs.length > 0 && (
-              <div className="mt-3 border-t border-slate-200 pt-3">
-                <div className="mb-1 text-xs text-slate-500">最近运行</div>
+              <div className="mt-3 border-t border-slate-200/80 pt-3">
+                <div className="nf-label mb-1.5">最近运行</div>
                 {runs.slice(0, 5).map((r) => (
                   <button
                     key={r.id}
                     onClick={() => void window.novelflow.runs.get(r.id).then((x) => x && useWorkflowStore.setState({ run: x }))}
-                    className="block w-full truncate rounded px-2 py-1 text-left text-xs text-slate-600 hover:bg-slate-100"
+                    className="block w-full truncate rounded-md px-2 py-1 text-left text-xs text-slate-600 transition-colors hover:bg-slate-100"
                   >
                     {r.workflowName} · {statusLabel(r.status)}
                   </button>
@@ -201,14 +209,14 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   <input
-                    className={`${inputCls} max-w-md flex-1`}
+                    className="nf-input max-w-md flex-1"
                     value={draft.name}
                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                     disabled={draft.builtin}
                   />
                   <button
                     onClick={() => setDraft({ ...draft, nodes: [...draft.nodes, makeNode(draft.nodes.length)] })}
-                    className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
+                    className="nf-btn nf-btn-ghost"
                   >
                     + 添加节点
                   </button>
@@ -216,7 +224,7 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                     onClick={() => void doSave()}
                     disabled={draft.builtin}
                     title={draft.builtin ? '内置模板不可直接修改，请先从模板新建' : ''}
-                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
+                    className="nf-btn nf-btn-primary"
                   >
                     保存
                   </button>
@@ -227,7 +235,7 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                         setDraft(null)
                         showToast('已删除')
                       }}
-                      className="rounded border border-red-200 px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                      className="nf-btn nf-btn-danger"
                     >
                       删除
                     </button>
@@ -238,7 +246,7 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                   节点顺序即执行顺序，可拖拽排序。检查类 Skill（错别字/一致性）不改变文本流。
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   {draft.nodes.map((node, i) => {
                     const st = runNodeMap.get(node.id)
                     return (
@@ -251,60 +259,56 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                           if (dragFrom.current != null) move(dragFrom.current, i)
                           dragFrom.current = null
                         }}
-                        className="rounded-lg border border-slate-200 bg-white p-3"
+                        className="nf-card p-3.5"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="cursor-grab text-slate-400" title="拖拽排序">
+                          <span className="cursor-grab select-none text-slate-400" title="拖拽排序" aria-hidden>
                             ≡
                           </span>
-                          <span className="text-xs text-slate-400">#{i + 1}</span>
+                          <span className="text-xs text-slate-400 [font-variant-numeric:tabular-nums]">#{i + 1}</span>
                           <input
-                            className={`${inputCls} flex-1`}
+                            className="nf-input flex-1"
                             value={node.name}
                             onChange={(e) => update({ name: e.target.value }, node.id)}
                           />
                           {st && (
-                            <span
-                              className={`shrink-0 rounded px-2 py-0.5 text-xs ${
-                                st.status === 'done'
-                                  ? 'bg-green-100 text-green-700'
-                                  : st.status === 'failed'
-                                    ? 'bg-red-100 text-red-700'
-                                    : st.status === 'awaiting_confirm'
-                                      ? 'bg-amber-100 text-amber-700'
-                                      : st.status === 'running'
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-slate-100 text-slate-500'
-                              }`}
-                            >
+                            <span className={`nf-chip shrink-0 ${NODE_STATUS_CLS[st.status] ?? ''}`}>
+                              {st.status === 'running' && (
+                                <span className="nf-ink-pulse h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden />
+                              )}
                               {NODE_STATUS_LABEL[st.status]}
                             </span>
                           )}
-                          <button onClick={() => move(i, i - 1)} className="rounded border border-slate-300 px-2 text-xs hover:bg-slate-100">
+                          <button onClick={() => move(i, i - 1)} className="nf-btn nf-btn-sm nf-btn-ghost px-2" title="上移">
                             ↑
                           </button>
-                          <button onClick={() => move(i, i + 1)} className="rounded border border-slate-300 px-2 text-xs hover:bg-slate-100">
+                          <button onClick={() => move(i, i + 1)} className="nf-btn nf-btn-sm nf-btn-ghost px-2" title="下移">
                             ↓
                           </button>
                           <button
                             onClick={() => setExpanded(expanded === node.id ? null : node.id)}
-                            className="rounded border border-slate-300 px-2 text-xs hover:bg-slate-100"
+                            className="nf-btn nf-btn-sm nf-btn-ghost"
                           >
                             {expanded === node.id ? '收起' : '编辑'}
                           </button>
                           <button
                             onClick={() => setDraft({ ...draft, nodes: draft.nodes.filter((n) => n.id !== node.id) })}
-                            className="rounded border border-red-200 px-2 text-xs text-red-600 hover:bg-red-50"
+                            className="nf-btn nf-btn-sm nf-btn-danger px-2"
+                            title="删除节点"
                           >
                             删
                           </button>
                         </div>
 
                         {expanded === node.id && (
-                          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <label className="text-xs text-slate-500">
+                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="nf-label">
                               Skill（留空=读取节点，不调用模型）
-                              <select className={inputCls} value={node.skillId} onChange={(e) => update({ skillId: e.target.value }, node.id)}>
+                              <select
+                                className="nf-select mt-1"
+                                value={node.skillId}
+                                onChange={(e) => update({ skillId: e.target.value }, node.id)}
+                              >
                                 <option value="">（读取节点）</option>
                                 {skills.map((s) => (
                                   <option key={s.id} value={s.id}>
@@ -313,9 +317,13 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                                 ))}
                               </select>
                             </label>
-                            <label className="text-xs text-slate-500">
+                            <label className="nf-label">
                               模型预设
-                              <select className={inputCls} value={node.presetId ?? ''} onChange={(e) => update({ presetId: e.target.value || undefined }, node.id)}>
+                              <select
+                                className="nf-select mt-1"
+                                value={node.presetId ?? ''}
+                                onChange={(e) => update({ presetId: e.target.value || undefined }, node.id)}
+                              >
                                 <option value="">（按 Skill 推荐角色）</option>
                                 {presets.map((p) => (
                                   <option key={p.id} value={p.id}>
@@ -324,24 +332,28 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                                 ))}
                               </select>
                             </label>
-                            <label className="text-xs text-slate-500">
+                            <label className="nf-label">
                               输入来源
                               <select
-                                className={inputCls}
+                                className="nf-select mt-1"
                                 value={node.input.source}
-                                onChange={(e) => update({ input: { ...node.input, source: e.target.value as WorkflowNode['input']['source'] } }, node.id)}
+                                onChange={(e) =>
+                                  update({ input: { ...node.input, source: e.target.value as WorkflowNode['input']['source'] } }, node.id)
+                                }
                               >
                                 <option value="previous">上节点输出</option>
                                 <option value="file">项目文件</option>
                                 <option value="manual">手填文本</option>
                               </select>
                             </label>
-                            <label className="text-xs text-slate-500">
+                            <label className="nf-label">
                               输出去向
                               <select
-                                className={inputCls}
+                                className="nf-select mt-1"
                                 value={node.sink.kind}
-                                onChange={(e) => update({ sink: { ...node.sink, kind: e.target.value as WorkflowNode['sink']['kind'] } }, node.id)}
+                                onChange={(e) =>
+                                  update({ sink: { ...node.sink, kind: e.target.value as WorkflowNode['sink']['kind'] } }, node.id)
+                                }
                               >
                                 <option value="next">传给下一节点</option>
                                 <option value="file">写入文件</option>
@@ -349,10 +361,10 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                               </select>
                             </label>
                             {node.input.source === 'file' && (
-                              <label className="text-xs text-slate-500">
+                              <label className="nf-label">
                                 输入文件（可用 {'{chapter}'}）
                                 <input
-                                  className={inputCls}
+                                  className="nf-input mt-1"
                                   value={node.input.relPath ?? ''}
                                   onChange={(e) => update({ input: { ...node.input, relPath: e.target.value } }, node.id)}
                                   placeholder="outline/{chapter}"
@@ -360,55 +372,59 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                               </label>
                             )}
                             {node.input.source === 'manual' && (
-                              <label className="text-xs text-slate-500 sm:col-span-2">
+                              <label className="nf-label sm:col-span-2">
                                 手填文本
                                 <textarea
-                                  className={`${inputCls} h-20`}
+                                  className="nf-textarea mt-1 h-20"
                                   value={node.input.text ?? ''}
                                   onChange={(e) => update({ input: { ...node.input, text: e.target.value } }, node.id)}
                                 />
                               </label>
                             )}
                             {node.sink.kind === 'file' && (
-                              <label className="text-xs text-slate-500">
+                              <label className="nf-label">
                                 输出文件（可用 {'{chapter}'}）
                                 <input
-                                  className={inputCls}
+                                  className="nf-input mt-1"
                                   value={node.sink.relPath ?? ''}
                                   onChange={(e) => update({ sink: { ...node.sink, relPath: e.target.value } }, node.id)}
                                   placeholder="chapters/{chapter}"
                                 />
                               </label>
                             )}
-                            <label className="flex items-center gap-2 text-xs text-slate-600">
-                              <input type="checkbox" checked={!!node.confirm} onChange={(e) => update({ confirm: e.target.checked }, node.id)} />
+                            <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                              <input
+                                type="checkbox"
+                                checked={!!node.confirm}
+                                onChange={(e) => update({ confirm: e.target.checked }, node.id)}
+                              />
                               人工确认点（执行到此暂停，可修改中间结果）
                             </label>
                           </div>
                         )}
 
                         {st && (st.output != null || st.error) && (
-                          <details className="mt-2 text-xs text-slate-500">
-                            <summary className="cursor-pointer">
+                          <details className="mt-2.5 text-xs text-slate-500">
+                            <summary className="cursor-pointer select-none hover:text-slate-700">
                               {st.error ? `错误：${st.error}` : `输出（${(st.output ?? '').length} 字）`}
                             </summary>
-                            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2">
+                            <pre className="nf-inset mt-1 max-h-40 overflow-auto whitespace-pre-wrap p-2">
                               {st.error ?? st.output}
                             </pre>
                           </details>
                         )}
 
                         {st?.status === 'awaiting_confirm' && run && (
-                          <div className="mt-2 rounded border border-amber-300 bg-amber-50 p-2">
-                            <div className="mb-1 text-xs text-amber-800">人工确认：可修改下方内容后继续</div>
+                          <div className="nf-callout nf-callout-warn mt-2.5">
+                            <div className="mb-1.5 text-xs">人工确认：可修改下方内容后继续</div>
                             <textarea
-                              className={`${inputCls} h-32 font-mono`}
+                              className="nf-textarea h-32 font-mono text-[13px]"
                               defaultValue={st.output ?? ''}
                               onChange={(e) => setConfirmEdit(e.target.value)}
                             />
                             <button
                               onClick={() => void confirm(run.id, node.id, confirmEdit || undefined).then(() => setConfirmEdit(''))}
-                              className="mt-2 rounded bg-amber-600 px-3 py-1 text-sm text-white hover:bg-amber-500"
+                              className="nf-btn nf-btn-primary mt-2"
                             >
                               确认并继续
                             </button>
@@ -416,10 +432,7 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                         )}
 
                         {st?.status === 'failed' && run && (
-                          <button
-                            onClick={() => void retry(run.id, node.id)}
-                            className="mt-2 rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-500"
-                          >
+                          <button onClick={() => void retry(run.id, node.id)} className="nf-btn nf-btn-danger mt-2.5">
                             从此节点重试
                           </button>
                         )}
@@ -429,16 +442,20 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                 </div>
 
                 {/* 运行控制 */}
-                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                  <label className="text-sm text-slate-600">
+                <div className="nf-card flex flex-wrap items-center gap-2.5 p-3.5">
+                  <label className="nf-label !mb-0 flex items-center gap-2 text-sm text-slate-600">
                     章号
-                    <input className={`${inputCls} ml-2 inline-block w-20`} value={chapterNo} onChange={(e) => setChapterNo(e.target.value)} />
+                    <input
+                      className="nf-input w-20 [font-variant-numeric:tabular-nums]"
+                      value={chapterNo}
+                      onChange={(e) => setChapterNo(e.target.value)}
+                    />
                   </label>
                   <button
                     onClick={() => void start(draft.id, projectChapterNo())}
                     disabled={!project || draft.builtin}
                     title={draft.builtin ? '请先从模板新建可编辑副本' : ''}
-                    className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
+                    className="nf-btn nf-btn-primary"
                   >
                     运行工作流
                   </button>
@@ -446,12 +463,12 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                     <>
                       <span className="text-sm text-slate-600">状态：{statusLabel(run.status)}</span>
                       {(run.status === 'paused' || run.status === 'failed' || run.status === 'running') && (
-                        <button onClick={() => void resume(run.id)} className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100">
+                        <button onClick={() => void resume(run.id)} className="nf-btn nf-btn-ghost">
                           继续
                         </button>
                       )}
                       {run.status !== 'completed' && run.status !== 'aborted' && (
-                        <button onClick={() => void abort(run.id)} className="rounded border border-red-200 px-3 py-1 text-sm text-red-600 hover:bg-red-50">
+                        <button onClick={() => void abort(run.id)} className="nf-btn nf-btn-danger">
                           中止
                         </button>
                       )}
@@ -460,8 +477,10 @@ export function WorkflowPage({ onBack }: { onBack: () => void }) {
                 </div>
               </>
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+              <div className="rounded-[10px] border border-dashed border-slate-300 p-10 text-center text-sm leading-6 text-slate-500">
                 从左侧选择工作流，或从一个模板新建。
+                <br />
+                <span className="text-xs text-slate-400">「写一章」模板覆盖 计划 → 起稿 → 校对 → 精修 全流程。</span>
               </div>
             )}
           </section>

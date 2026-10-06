@@ -83,61 +83,69 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
     setInputsText(saved.inputs.join(', '))
   }
 
-  const inputCls =
-    'w-full rounded border border-slate-300 px-2 py-1.5 text-sm focus:border-slate-500 focus:outline-none'
-
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-5xl px-6 py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-bold">Skill 库</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={async () => {
-                const s = await importDialog()
-                if (s) showToast(`已导入「${s.name}」`)
-              }}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
-            >
-              导入 SKILL.md
-            </button>
-            <button
-              onClick={() => {
-                const s = emptySkill()
-                setForm(s)
-                setInputsText(s.inputs.join(', '))
-              }}
-              className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500"
-            >
-              + 新建 Skill
-            </button>
-            <button onClick={onBack} className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100">
-              返回编辑器
-            </button>
+      <div className="mx-auto max-w-5xl px-6 py-7">
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <h1 className="nf-page-title">Skill 库</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  const s = await importDialog()
+                  if (s) showToast(`已导入「${s.name}」`)
+                }}
+                className="nf-btn nf-btn-ghost"
+              >
+                导入 SKILL.md
+              </button>
+              <button
+                onClick={() => {
+                  const s = emptySkill()
+                  setForm(s)
+                  setInputsText(s.inputs.join(', '))
+                }}
+                className="nf-btn nf-btn-primary"
+              >
+                + 新建 Skill
+              </button>
+              <button onClick={onBack} className="nf-btn nf-btn-sm nf-btn-ghost">
+                返回编辑器
+              </button>
+            </div>
           </div>
+          <hr className="nf-brush-rule mt-3" />
         </div>
 
-        <section className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
-          <div className="mb-3 text-sm text-slate-500">
-            共 {skills.length} 个 Skill。提示词只存放在 <code className="rounded bg-slate-100 px-1">skills/</code> 目录，
-            业务代码不含任何硬编码提示词。编辑保存后版本号递增。
+        <section className="nf-card mb-8 p-5">
+          <div className="mb-4 text-sm text-slate-500">
+            共 {skills.length} 个 Skill。提示词只存放在 <code className="rounded bg-slate-100 px-1">skills/</code>{' '}
+            目录，业务代码不含任何硬编码提示词。编辑保存后版本号递增。
           </div>
-          <div className="flex flex-col gap-2">
+          {skills.length === 0 && (
+            <div className="nf-callout nf-callout-info">还没有任何 Skill：点「+ 新建 Skill」或「导入 SKILL.md」开始。</div>
+          )}
+          <div className="flex flex-col gap-2.5">
             {skills.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 p-3">
+              <div
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 p-3 transition-colors hover:bg-slate-50"
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{s.name}</span>
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">v{s.version}</span>
-                    {s.builtin && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">内置</span>}
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{OUTPUT_LABELS[s.output]}</span>
+                    <span className="nf-chip [font-variant-numeric:tabular-nums]">v{s.version}</span>
+                    {s.builtin && (
+                      <span className="nf-chip border-blue-200 bg-blue-50 text-blue-700">内置</span>
+                    )}
+                    <span className="nf-chip">{OUTPUT_LABELS[s.output]}</span>
                   </div>
                   <div className="mt-1 truncate text-xs text-slate-500">
                     {s.id} · {s.description || '（无描述）'} · 变量 {s.inputs.join('、') || '（无）'}
                   </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <button onClick={() => void startEdit(s.id)} className="rounded border border-slate-300 px-2.5 py-1 text-sm hover:bg-slate-100">
+                <div className="flex shrink-0 gap-1.5">
+                  <button onClick={() => void startEdit(s.id)} className="nf-btn nf-btn-sm nf-btn-ghost">
                     编辑
                   </button>
                   <button
@@ -145,7 +153,7 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
                       const c = await duplicate(s.id)
                       showToast(`已复制为「${c.name}」`)
                     }}
-                    className="rounded border border-slate-300 px-2.5 py-1 text-sm hover:bg-slate-100"
+                    className="nf-btn nf-btn-sm nf-btn-ghost"
                   >
                     复制
                   </button>
@@ -154,7 +162,7 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
                       const path = await exportDialog(s.id)
                       if (path) showToast(`已导出到 ${path}`)
                     }}
-                    className="rounded border border-slate-300 px-2.5 py-1 text-sm hover:bg-slate-100"
+                    className="nf-btn nf-btn-sm nf-btn-ghost"
                   >
                     导出
                   </button>
@@ -165,7 +173,7 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
                       if (form?.id === s.id) setForm(null)
                       showToast('已删除')
                     }}
-                    className="rounded border border-red-200 px-2.5 py-1 text-sm text-red-600 hover:bg-red-50"
+                    className="nf-btn nf-btn-sm nf-btn-danger"
                   >
                     删除
                   </button>
@@ -176,25 +184,31 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
         </section>
 
         {form && (
-          <section className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
-            <div className="mb-3 font-medium">{form.builtin ? `编辑「${form.name}」（内置，保存为你的版本）` : '编辑 Skill'}</div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="text-sm">
-                <span className="mb-1 block text-slate-600">id（文件名，保存后不建议改）</span>
-                <input className={inputCls} value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
+          <section className="nf-card border-blue-200 p-5">
+            <div className="mb-4 font-medium">
+              {form.builtin ? `编辑「${form.name}」（内置，保存为你的版本）` : '编辑 Skill'}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="nf-label">
+                id（文件名，保存后不建议改）
+                <input className="nf-input mt-1" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-slate-600">名称</span>
-                <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <label className="nf-label">
+                名称
+                <input className="nf-input mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </label>
-              <label className="text-sm sm:col-span-2">
-                <span className="mb-1 block text-slate-600">描述</span>
-                <input className={inputCls} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <label className="nf-label sm:col-span-2">
+                描述
+                <input
+                  className="nf-input mt-1"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-slate-600">推荐模型角色</span>
+              <label className="nf-label">
+                推荐模型角色
                 <select
-                  className={inputCls}
+                  className="nf-select mt-1"
                   value={form.recommendedModel ?? ''}
                   onChange={(e) => setForm({ ...form, recommendedModel: (e.target.value || null) as ModelRole | null })}
                 >
@@ -206,10 +220,10 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
                   ))}
                 </select>
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-slate-600">输出形态</span>
+              <label className="nf-label">
+                输出形态
                 <select
-                  className={inputCls}
+                  className="nf-select mt-1"
                   value={form.output}
                   onChange={(e) => setForm({ ...form, output: e.target.value as SkillOutputKind })}
                 >
@@ -218,24 +232,24 @@ export function SkillLibrary({ onBack }: { onBack: () => void }) {
                   <option value="issues">问题清单（结构化）</option>
                 </select>
               </label>
-              <label className="text-sm sm:col-span-2">
-                <span className="mb-1 block text-slate-600">变量（逗号分隔，如 chapter_text, bible.文风规范）</span>
-                <input className={inputCls} value={inputsText} onChange={(e) => setInputsText(e.target.value)} />
+              <label className="nf-label sm:col-span-2">
+                变量（逗号分隔，如 chapter_text, bible.文风规范）
+                <input className="nf-input mt-1" value={inputsText} onChange={(e) => setInputsText(e.target.value)} />
               </label>
-              <label className="text-sm sm:col-span-2">
-                <span className="mb-1 block text-slate-600">提示词正文（用 {'{{变量}}'} 占位）</span>
+              <label className="nf-label sm:col-span-2">
+                提示词正文（用 {'{{变量}}'} 占位）
                 <textarea
-                  className={`${inputCls} h-72 font-mono`}
+                  className="nf-textarea mt-1 h-72 font-mono text-[13px]"
                   value={form.body}
                   onChange={(e) => setForm({ ...form, body: e.target.value })}
                 />
               </label>
             </div>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => void submit()} className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-500">
+            <div className="mt-5 flex gap-2">
+              <button onClick={() => void submit()} className="nf-btn nf-btn-primary">
                 保存（版本 +1）
               </button>
-              <button onClick={() => setForm(null)} className="rounded border border-slate-300 px-4 py-1.5 text-sm hover:bg-white">
+              <button onClick={() => setForm(null)} className="nf-btn nf-btn-ghost">
                 取消
               </button>
             </div>

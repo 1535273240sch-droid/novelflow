@@ -3,7 +3,10 @@ import { useProjectStore } from '../../stores/project'
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-4">
-      <div className="mb-1 px-3 text-xs font-semibold tracking-wide text-slate-400">{title}</div>
+      <div className="mb-1.5 flex items-center gap-2 px-3">
+        <span className="text-xs font-semibold tracking-[0.08em] text-slate-500">{title}</span>
+        <span className="h-px flex-1 bg-slate-300/50" aria-hidden />
+      </div>
       <div className="flex flex-col gap-0.5">{children}</div>
     </div>
   )
@@ -21,8 +24,8 @@ function Item({
   return (
     <button
       onClick={onClick}
-      className={`mx-2 truncate rounded px-2 py-1 text-left text-sm ${
-        active ? 'bg-slate-800 text-white' : 'text-slate-700 hover:bg-slate-200'
+      className={`mx-2 truncate rounded-md px-2 py-1 text-left text-sm transition-colors ${
+        active ? 'bg-slate-800 text-white' : 'text-slate-700 hover:bg-slate-200/70'
       }`}
     >
       {label}
@@ -34,7 +37,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="mx-2 mb-1 rounded border border-dashed border-slate-300 px-2 py-1 text-left text-xs text-slate-500 hover:border-slate-400 hover:text-slate-700"
+      className="mx-2 mb-1 rounded-md border border-dashed border-slate-300 px-2 py-1 text-left text-xs text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-700"
     >
       + {label}
     </button>

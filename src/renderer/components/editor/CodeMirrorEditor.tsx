@@ -75,5 +75,5 @@ export function CodeMirrorEditor({ value, onChange, onSelectionChange }: Props) 
     }
   }, [value])
 
-  return <div ref={hostRef} className="nf-editor h-full overflow-hidden bg-white" />
+  return <div ref={hostRef} className="nf-editor h-full overflow-hidden" />
 }

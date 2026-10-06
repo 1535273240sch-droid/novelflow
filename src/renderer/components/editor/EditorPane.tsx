@@ -56,15 +56,23 @@ export function EditorPane() {
 
   return (
     <div className="flex h-full min-w-0 flex-col bg-white">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-medium text-slate-800">
+      {/* 章题栏 */}
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 px-5 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="truncate font-brush text-base tracking-wide text-slate-900">
             {currentTitle || '未打开文件'}
           </span>
-          {dirty && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" title="有未保存修改" />}
+          {dirty && (
+            <span
+              className="h-2 w-2 shrink-0 rounded-full bg-red-500"
+              title="有未保存修改"
+              aria-label="有未保存修改"
+            />
+          )}
           {streamStatus === 'streaming' && (
-            <span className="shrink-0 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              流式生成中…
+            <span className="nf-chip shrink-0 border-blue-200 bg-blue-50 text-blue-700">
+              <span className="nf-ink-pulse h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden />
+              流式生成中
             </span>
           )}
         </div>
@@ -72,14 +80,14 @@ export function EditorPane() {
           <button
             onClick={onManualSave}
             disabled={!currentPath}
-            className="rounded border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            className="nf-btn nf-btn-sm nf-btn-ghost"
           >
             {saving ? '保存中…' : '保存'}
           </button>
           <button
             onClick={onCopy}
             disabled={!currentPath}
-            className="rounded bg-slate-800 px-3 py-1 text-sm text-white hover:bg-slate-700 disabled:opacity-40"
+            className="nf-btn nf-btn-sm nf-btn-primary"
             title="复制全文（Ctrl+C 可复制选中文本）"
           >
             复制全文
@@ -88,14 +96,25 @@ export function EditorPane() {
       </div>
 
       <div className="min-h-0 flex-1">
-        <CodeMirrorEditor value={content} onChange={setContent} onSelectionChange={(t, f, to) => setSelection(t, f, to)} />
+        <CodeMirrorEditor
+          value={content}
+          onChange={setContent}
+          onSelectionChange={(t, f, to) => setSelection(t, f, to)}
+        />
       </div>
 
-      <div className="flex items-center justify-between border-t border-slate-200 px-4 py-1.5 text-xs text-slate-500">
-        <span>{currentPath ?? '—'}</span>
-        <div className="flex items-center gap-4">
-          <span>字数：{countChars(content)}</span>
-          <span>自动保存：{Math.round(autoSaveMs / 1000)} 秒</span>
+      {/* 状态栏 */}
+      <div className="flex items-center justify-between border-t border-slate-200/80 px-5 py-1.5 text-xs text-slate-500">
+        <span className="min-w-0 truncate">{currentPath ?? '—'}</span>
+        <div className="flex shrink-0 items-center gap-4 [font-variant-numeric:tabular-nums]">
+          <span>字数 {countChars(content)}</span>
+          <span className="text-slate-300" aria-hidden>
+            ·
+          </span>
+          <span>自动保存 {Math.round(autoSaveMs / 1000)} 秒</span>
+          <span className="text-slate-300" aria-hidden>
+            ·
+          </span>
           <span>{lastSavedAt ? `上次保存 ${lastSavedAt}` : '尚未保存'}</span>
         </div>
       </div>
